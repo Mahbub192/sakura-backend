@@ -11,3 +11,4 @@ import { Role, User, Clinic } from '../../entities';
 export class SeedModule {}
 
 
+
