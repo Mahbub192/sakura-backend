@@ -39,3 +39,5 @@ export class CreateAppointmentDto {
   @IsPositive()
   maxPatients?: number;
 }
+
+

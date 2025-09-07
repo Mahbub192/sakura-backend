@@ -11,3 +11,5 @@ import { Appointment, Doctor, Clinic } from '../../entities';
   exports: [AppointmentsService],
 })
 export class AppointmentsModule {}
+
+

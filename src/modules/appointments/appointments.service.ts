@@ -167,3 +167,5 @@ export class AppointmentsService {
     await this.appointmentRepository.remove(appointment);
   }
 }
+
+

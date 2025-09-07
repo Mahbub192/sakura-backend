@@ -94,3 +94,5 @@ export class DoctorsController {
     return this.doctorsService.remove(+id);
   }
 }
+
+

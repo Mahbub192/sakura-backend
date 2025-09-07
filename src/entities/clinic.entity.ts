@@ -47,3 +47,5 @@ export class Clinic {
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   updatedAt: Date;
 }
+
+

@@ -65,3 +65,5 @@ export class Doctor {
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   updatedAt: Date;
 }
+
+

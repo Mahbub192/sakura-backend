@@ -73,3 +73,5 @@ echo "🔑 Default admin credentials:"
 echo "   Email: admin@hospital.com"
 echo "   Password: admin123"
 echo ""
+
+

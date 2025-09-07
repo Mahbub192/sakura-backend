@@ -119,3 +119,5 @@ export class TokenAppointmentsController {
     return this.tokenAppointmentsService.remove(+id);
   }
 }
+
+

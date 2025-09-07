@@ -87,3 +87,5 @@ export class TokenAppointment {
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   updatedAt: Date;
 }
+
+

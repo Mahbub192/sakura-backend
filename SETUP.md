@@ -284,3 +284,5 @@ For issues and support:
 5. Configure reverse proxy (nginx/Apache)
 6. Set up monitoring and logging
 7. Configure automated backups
+
+

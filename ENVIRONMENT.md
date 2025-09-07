@@ -259,3 +259,5 @@ When updating the application:
 2. Update your `.env` file accordingly
 3. Review validation schema changes
 4. Test configuration with `npm run build`
+
+

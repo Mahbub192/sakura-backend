@@ -5,3 +5,5 @@ export { Assistant } from './assistant.entity';
 export { Clinic } from './clinic.entity';
 export { Appointment, AppointmentStatus } from './appointment.entity';
 export { TokenAppointment, TokenAppointmentStatus } from './token-appointment.entity';
+
+

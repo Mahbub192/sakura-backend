@@ -66,3 +66,5 @@ if (allValid) {
     console.log('   Check ENVIRONMENT.md for detailed configuration guide.');
     process.exit(1);
 }
+
+

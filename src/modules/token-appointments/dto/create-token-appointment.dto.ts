@@ -55,3 +55,5 @@ export class CreateTokenAppointmentDto {
   @IsEnum(TokenAppointmentStatus)
   status?: TokenAppointmentStatus;
 }
+
+
