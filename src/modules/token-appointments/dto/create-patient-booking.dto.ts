@@ -1,13 +1,12 @@
+import { IsString, IsEmail, IsInt, Min, IsOptional, IsBoolean, IsNumber, IsDateString, Matches } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNumber, IsDateString, IsOptional, IsEnum, IsEmail, IsPositive, IsBoolean } from 'class-validator';
-import { TokenAppointmentStatus } from '../../../entities/token-appointment.entity';
 
-export class CreateTokenAppointmentDto {
+export class CreatePatientBookingDto {
   @ApiProperty({ description: 'Patient full name' })
   @IsString()
   patientName: string;
 
-  @ApiProperty({ description: 'Patient email' })
+  @ApiProperty({ description: 'Patient email address' })
   @IsEmail()
   patientEmail: string;
 
@@ -16,11 +15,11 @@ export class CreateTokenAppointmentDto {
   patientPhone: string;
 
   @ApiProperty({ description: 'Patient age' })
-  @IsNumber()
-  @IsPositive()
+  @IsInt()
+  @Min(0)
   patientAge: number;
 
-  @ApiProperty({ description: 'Patient gender' })
+  @ApiProperty({ description: 'Patient gender', example: 'Male' })
   @IsString()
   patientGender: string;
 
@@ -36,15 +35,28 @@ export class CreateTokenAppointmentDto {
 
   @ApiProperty({ description: 'Doctor fee for this appointment' })
   @IsNumber()
-  @IsPositive()
+  @Min(0)
   doctorFee: number;
 
-  @ApiProperty({ description: 'Appointment date (YYYY-MM-DD)' })
+  @ApiProperty({ description: 'Doctor ID' })
+  @IsInt()
+  @Min(1)
+  doctorId: number;
+
+  @ApiProperty({ description: 'Appointment slot ID' })
+  @IsInt()
+  @Min(1)
+  appointmentId: number;
+
+  @ApiProperty({ description: 'Appointment date', example: '2024-01-15' })
   @IsDateString()
   date: string;
 
-  @ApiProperty({ description: 'Appointment time (HH:MM)' })
+  @ApiProperty({ description: 'Appointment time', example: '10:30' })
   @IsString()
+  @Matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, {
+    message: 'time must be in HH:MM format',
+  })
   time: string;
 
   @ApiProperty({ description: 'Reason for visit', required: false })
@@ -56,20 +68,4 @@ export class CreateTokenAppointmentDto {
   @IsOptional()
   @IsString()
   notes?: string;
-
-  @ApiProperty({ description: 'Doctor ID reference' })
-  @IsNumber()
-  doctorId: number;
-
-  @ApiProperty({ description: 'Appointment slot ID reference' })
-  @IsNumber()
-  appointmentId: number;
-
-  @ApiProperty({ description: 'Booking status', enum: TokenAppointmentStatus, required: false })
-  @IsOptional()
-  @IsEnum(TokenAppointmentStatus)
-  status?: TokenAppointmentStatus;
 }
-
-
-

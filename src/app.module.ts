@@ -8,6 +8,7 @@ import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { DoctorsModule } from './modules/doctors/doctors.module';
+import { AssistantsModule } from './modules/assistants/assistants.module';
 import { AppointmentsModule } from './modules/appointments/appointments.module';
 import { TokenAppointmentsModule } from './modules/token-appointments/token-appointments.module';
 import { ClinicsModule } from './modules/clinics/clinics.module';
@@ -53,6 +54,7 @@ import {
     AuthModule,
     UsersModule,
     DoctorsModule,
+    AssistantsModule,
     AppointmentsModule,
     TokenAppointmentsModule,
     ClinicsModule,

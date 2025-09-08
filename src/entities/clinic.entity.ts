@@ -36,6 +36,34 @@ export class Clinic {
   @Column({ type: 'varchar', nullable: true })
   email: string;
 
+  @ApiProperty({ description: 'Clinic image URL', required: false })
+  @Column({ type: 'varchar', nullable: true })
+  clinicImage: string;
+
+  @ApiProperty({ description: 'Clinic map coordinates (latitude)', required: false })
+  @Column({ type: 'decimal', precision: 10, scale: 8, nullable: true })
+  latitude: number;
+
+  @ApiProperty({ description: 'Clinic map coordinates (longitude)', required: false })
+  @Column({ type: 'decimal', precision: 11, scale: 8, nullable: true })
+  longitude: number;
+
+  @ApiProperty({ description: 'Google Maps URL or embed code', required: false })
+  @Column({ type: 'text', nullable: true })
+  mapUrl: string;
+
+  @ApiProperty({ description: 'Operating hours (JSON object)', required: false })
+  @Column({ type: 'json', nullable: true })
+  operatingHours: object;
+
+  @ApiProperty({ description: 'Clinic facilities (JSON array)', required: false })
+  @Column({ type: 'json', nullable: true })
+  facilities: string[];
+
+  @ApiProperty({ description: 'Emergency contact number', required: false })
+  @Column({ type: 'varchar', nullable: true })
+  emergencyContact: string;
+
   @OneToMany(() => Appointment, (appointment) => appointment.clinic)
   appointments: Appointment[];
 

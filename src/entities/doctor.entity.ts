@@ -35,9 +35,37 @@ export class Doctor {
   @Column({ type: 'text', nullable: true })
   bio: string;
 
+  @ApiProperty({ description: 'Doctor profile image URL', required: false })
+  @Column({ type: 'varchar', nullable: true })
+  profileImage: string;
+
   @ApiProperty({ description: 'Consultation fee' })
   @Column({ type: 'decimal', precision: 10, scale: 2 })
   consultationFee: number;
+
+  @ApiProperty({ description: 'Available days (JSON array)', required: false })
+  @Column({ type: 'json', nullable: true })
+  availableDays: string[];
+
+  @ApiProperty({ description: 'General available time start', required: false })
+  @Column({ type: 'time', nullable: true })
+  generalAvailableStart: string;
+
+  @ApiProperty({ description: 'General available time end', required: false })
+  @Column({ type: 'time', nullable: true })
+  generalAvailableEnd: string;
+
+  @ApiProperty({ description: 'Default consultation duration in minutes' })
+  @Column({ type: 'int', default: 30 })
+  defaultConsultationDuration: number;
+
+  @ApiProperty({ description: 'Services provided (JSON array)', required: false })
+  @Column({ type: 'json', nullable: true })
+  services: string[];
+
+  @ApiProperty({ description: 'Contact information (JSON object)', required: false })
+  @Column({ type: 'json', nullable: true })
+  contactInfo: object;
 
   @ApiProperty({ description: 'User ID reference' })
   @Column({ name: 'user_id' })

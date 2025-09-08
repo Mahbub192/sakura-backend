@@ -18,7 +18,10 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { DoctorsService } from './doctors.service';
+import { DoctorDashboardService } from './doctor-dashboard.service';
 import { CreateDoctorDto, UpdateDoctorDto } from './dto';
+import { CreateAppointmentScheduleDto } from './dto/create-appointment-schedule.dto';
+import { UpdateDoctorProfileDto } from './dto/update-doctor-profile.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -30,7 +33,10 @@ import { RoleType } from '../../entities/role.entity';
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class DoctorsController {
-  constructor(private readonly doctorsService: DoctorsService) {}
+  constructor(
+    private readonly doctorsService: DoctorsService,
+    private readonly dashboardService: DoctorDashboardService,
+  ) {}
 
   @Post()
   @UseGuards(RolesGuard)
@@ -92,6 +98,66 @@ export class DoctorsController {
   @ApiParam({ name: 'id', description: 'Doctor ID' })
   remove(@Param('id') id: string) {
     return this.doctorsService.remove(+id);
+  }
+
+  // Dashboard endpoints
+  @Get('dashboard/stats')
+  @UseGuards(RolesGuard)
+  @Roles(RoleType.DOCTOR)
+  @ApiOperation({ summary: 'Get doctor dashboard statistics' })
+  @ApiResponse({ status: 200, description: 'Dashboard statistics retrieved' })
+  getDashboardStats(@CurrentUser() user: any) {
+    return this.dashboardService.getDashboardStats(user.userId);
+  }
+
+  @Get('dashboard/today-appointments')
+  @UseGuards(RolesGuard)
+  @Roles(RoleType.DOCTOR)
+  @ApiOperation({ summary: 'Get today\'s appointments for doctor' })
+  @ApiResponse({ status: 200, description: 'Today\'s appointments retrieved' })
+  getTodayAppointments(@CurrentUser() user: any) {
+    return this.dashboardService.getTodayAppointments(user.userId);
+  }
+
+  @Post('dashboard/create-schedule')
+  @UseGuards(RolesGuard)
+  @Roles(RoleType.DOCTOR)
+  @ApiOperation({ summary: 'Create appointment schedule for a day' })
+  @ApiResponse({ status: 201, description: 'Appointment schedule created' })
+  @ApiResponse({ status: 400, description: 'Invalid schedule data' })
+  createAppointmentSchedule(@Body() scheduleDto: CreateAppointmentScheduleDto, @CurrentUser() user: any) {
+    return this.dashboardService.createAppointmentSchedule(user.userId, scheduleDto);
+  }
+
+  @Get('dashboard/upcoming-appointments')
+  @UseGuards(RolesGuard)
+  @Roles(RoleType.DOCTOR)
+  @ApiOperation({ summary: 'Get upcoming appointments' })
+  @ApiResponse({ status: 200, description: 'Upcoming appointments retrieved' })
+  @ApiQuery({ name: 'limit', required: false, description: 'Number of appointments to retrieve' })
+  getUpcomingAppointments(@CurrentUser() user: any, @Query('limit') limit?: string) {
+    const limitNum = limit ? parseInt(limit) : 10;
+    return this.dashboardService.getUpcomingAppointments(user.userId, limitNum);
+  }
+
+  @Get('dashboard/monthly-appointments')
+  @UseGuards(RolesGuard)
+  @Roles(RoleType.DOCTOR)
+  @ApiOperation({ summary: 'Get monthly appointments' })
+  @ApiResponse({ status: 200, description: 'Monthly appointments retrieved' })
+  @ApiQuery({ name: 'month', description: 'Month (1-12)' })
+  @ApiQuery({ name: 'year', description: 'Year' })
+  getMonthlyAppointments(@CurrentUser() user: any, @Query('month') month: string, @Query('year') year: string) {
+    return this.dashboardService.getMonthlyAppointments(user.userId, parseInt(month), parseInt(year));
+  }
+
+  @Patch('profile/update')
+  @UseGuards(RolesGuard)
+  @Roles(RoleType.DOCTOR)
+  @ApiOperation({ summary: 'Update doctor profile information' })
+  @ApiResponse({ status: 200, description: 'Doctor profile updated successfully' })
+  updateProfile(@Body() updateProfileDto: UpdateDoctorProfileDto, @CurrentUser() user: any) {
+    return this.dashboardService.updateDoctorProfile(user.userId, updateProfileDto);
   }
 }
 

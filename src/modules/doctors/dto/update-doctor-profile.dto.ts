@@ -1,30 +1,7 @@
+import { IsString, IsOptional, IsNumber, IsArray, IsObject, Min } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNumber, IsOptional, IsDecimal, IsPositive, Min, IsArray, IsObject } from 'class-validator';
-import { Transform, Type } from 'class-transformer';
 
-export class CreateDoctorDto {
-  @ApiProperty({ description: 'Doctor full name' })
-  @IsString()
-  name: string;
-
-  @ApiProperty({ description: 'Doctor specialization' })
-  @IsString()
-  specialization: string;
-
-  @ApiProperty({ description: 'Years of experience', required: false })
-  @IsOptional()
-  @IsNumber()
-  @IsPositive()
-  experience?: number;
-
-  @ApiProperty({ description: 'Medical license number' })
-  @IsString()
-  licenseNumber: string;
-
-  @ApiProperty({ description: 'Doctor qualification' })
-  @IsString()
-  qualification: string;
-
+export class UpdateDoctorProfileDto {
   @ApiProperty({ description: 'Doctor bio/description', required: false })
   @IsOptional()
   @IsString()
@@ -35,11 +12,11 @@ export class CreateDoctorDto {
   @IsString()
   profileImage?: string;
 
-  @ApiProperty({ description: 'Consultation fee' })
-  @Type(() => Number)
-  @IsNumber({ maxDecimalPlaces: 2 })
-  @Min(0.01)
-  consultationFee: number;
+  @ApiProperty({ description: 'Consultation fee', required: false })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  consultationFee?: number;
 
   @ApiProperty({ description: 'Available days', required: false, example: ['Monday', 'Tuesday', 'Wednesday'] })
   @IsOptional()
@@ -71,11 +48,4 @@ export class CreateDoctorDto {
   @IsOptional()
   @IsObject()
   contactInfo?: object;
-
-  @ApiProperty({ description: 'User ID reference' })
-  @IsNumber()
-  userId: number;
 }
-
-
-

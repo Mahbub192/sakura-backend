@@ -37,6 +37,18 @@ export class TokenAppointment {
   @Column({ type: 'varchar' })
   patientGender: string;
 
+  @ApiProperty({ description: 'Patient location/address', required: false })
+  @Column({ type: 'text', nullable: true })
+  patientLocation: string;
+
+  @ApiProperty({ description: 'Is this an old patient?', default: false })
+  @Column({ type: 'boolean', default: false })
+  isOldPatient: boolean;
+
+  @ApiProperty({ description: 'Doctor fee for this appointment' })
+  @Column({ type: 'decimal', precision: 10, scale: 2 })
+  doctorFee: number;
+
   @ApiProperty({ description: 'Appointment date' })
   @Column({ type: 'date' })
   date: Date;
