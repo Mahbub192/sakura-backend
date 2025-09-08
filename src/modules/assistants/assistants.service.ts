@@ -1,8 +1,9 @@
 import { Injectable, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Assistant, Doctor } from '../../entities';
+import { Assistant, Doctor, User, Role, RoleType } from '../../entities';
 import { CreateAssistantDto, UpdateAssistantDto } from './dto';
+import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 export class AssistantsService {
@@ -11,10 +12,14 @@ export class AssistantsService {
     private assistantRepository: Repository<Assistant>,
     @InjectRepository(Doctor)
     private doctorRepository: Repository<Doctor>,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
+    @InjectRepository(Role)
+    private roleRepository: Repository<Role>,
   ) {}
 
   async create(createAssistantDto: CreateAssistantDto, currentUserId: number): Promise<Assistant> {
-    const { email, ...assistantData } = createAssistantDto;
+    const { email, name, phone, ...assistantData } = createAssistantDto;
 
     // Find doctor by current user ID
     const doctor = await this.doctorRepository.findOne({
@@ -26,19 +31,54 @@ export class AssistantsService {
       throw new NotFoundException('Doctor profile not found for current user');
     }
 
-    // Check if email is already in use
+    // Check if email is already in use (in both users and assistants)
+    const existingUser = await this.userRepository.findOne({
+      where: { email },
+    });
+
     const existingAssistant = await this.assistantRepository.findOne({
       where: { email },
     });
 
-    if (existingAssistant) {
-      throw new ConflictException('Assistant with this email already exists');
+    if (existingUser || existingAssistant) {
+      throw new ConflictException('User with this email already exists');
     }
 
+    // Get Assistant role
+    const assistantRole = await this.roleRepository.findOne({
+      where: { name: RoleType.ASSISTANT },
+    });
+
+    if (!assistantRole) {
+      throw new NotFoundException('Assistant role not found');
+    }
+
+    // Create user account for assistant
+    const hashedPassword = await bcrypt.hash('password123', 10); // Default password
+    const [firstName, ...lastNameParts] = name.split(' ');
+    const lastName = lastNameParts.join(' ') || '';
+
+    const user = this.userRepository.create({
+      email,
+      password: hashedPassword,
+      firstName,
+      lastName,
+      phone,
+      roleId: assistantRole.id,
+      isActive: true,
+      isEmailVerified: false,
+    });
+
+    const savedUser = await this.userRepository.save(user);
+
+    // Create assistant profile
     const assistant = this.assistantRepository.create({
       ...assistantData,
+      name,
       email,
+      phone,
       doctorId: doctor.id,
+      userId: savedUser.id,
     });
 
     return this.assistantRepository.save(assistant);
@@ -125,5 +165,30 @@ export class AssistantsService {
     const assistant = await this.findOne(id, currentUserId);
     assistant.isActive = !assistant.isActive;
     return this.assistantRepository.save(assistant);
+  }
+
+  async changePassword(assistantId: number, newPassword: string, currentUserId: number): Promise<{ message: string }> {
+    const assistant = await this.findOne(assistantId, currentUserId);
+    
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    
+    await this.userRepository.update(assistant.userId, {
+      password: hashedPassword,
+    });
+
+    return { message: 'Password changed successfully' };
+  }
+
+  async getAssistantByUserId(userId: number): Promise<Assistant> {
+    const assistant = await this.assistantRepository.findOne({
+      where: { userId },
+      relations: ['doctor', 'user'],
+    });
+
+    if (!assistant) {
+      throw new NotFoundException('Assistant profile not found');
+    }
+
+    return assistant;
   }
 }

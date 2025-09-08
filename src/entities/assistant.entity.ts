@@ -1,6 +1,7 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToOne } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { Doctor } from './doctor.entity';
+import { User } from './user.entity';
 
 @Entity('assistants')
 export class Assistant {
@@ -36,6 +37,15 @@ export class Assistant {
   @ManyToOne(() => Doctor, (doctor) => doctor.assistants, { eager: true })
   @JoinColumn({ name: 'doctor_id' })
   doctor: Doctor;
+
+  @ApiProperty({ description: 'User ID reference' })
+  @Column({ name: 'user_id', nullable: true })
+  userId: number;
+
+  @ApiProperty({ type: () => User, description: 'Associated user account' })
+  @OneToOne(() => User, (user) => user.assistant, { eager: true })
+  @JoinColumn({ name: 'user_id' })
+  user: User;
 
   @ApiProperty({ description: 'Employment status' })
   @Column({ type: 'boolean', default: true })

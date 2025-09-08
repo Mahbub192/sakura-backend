@@ -2,6 +2,7 @@ import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToOne
 import { ApiProperty } from '@nestjs/swagger';
 import { Role } from './role.entity';
 import { Doctor } from './doctor.entity';
+import { Assistant } from './assistant.entity';
 import { Exclude } from 'class-transformer';
 
 @Entity('users')
@@ -41,6 +42,9 @@ export class User {
 
   @OneToOne(() => Doctor, (doctor) => doctor.user)
   doctor: Doctor;
+
+  @OneToOne(() => Assistant, (assistant) => assistant.user)
+  assistant: Assistant;
 
   @ApiProperty({ description: 'Account activation status' })
   @Column({ type: 'boolean', default: true })

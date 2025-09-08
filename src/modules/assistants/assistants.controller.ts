@@ -95,4 +95,29 @@ export class AssistantsController {
   remove(@Param('id') id: string, @CurrentUser() user: any) {
     return this.assistantsService.remove(+id, user.userId);
   }
+
+  @Patch(':id/change-password')
+  @UseGuards(RolesGuard)
+  @Roles(RoleType.DOCTOR)
+  @ApiOperation({ summary: 'Change assistant password' })
+  @ApiResponse({ status: 200, description: 'Password changed successfully' })
+  @ApiResponse({ status: 404, description: 'Assistant not found' })
+  @ApiParam({ name: 'id', description: 'Assistant ID' })
+  changePassword(
+    @Param('id') id: string,
+    @Body() body: { newPassword: string },
+    @CurrentUser() user: any
+  ) {
+    return this.assistantsService.changePassword(+id, body.newPassword, user.userId);
+  }
+
+  @Get('profile')
+  @UseGuards(RolesGuard)
+  @Roles(RoleType.ASSISTANT)
+  @ApiOperation({ summary: 'Get assistant profile (Assistant only)' })
+  @ApiResponse({ status: 200, description: 'Assistant profile' })
+  @ApiResponse({ status: 404, description: 'Assistant profile not found' })
+  getProfile(@CurrentUser() user: any) {
+    return this.assistantsService.getAssistantByUserId(user.userId);
+  }
 }
