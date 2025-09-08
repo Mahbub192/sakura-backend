@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { TokenAppointment, Appointment, Doctor, TokenAppointmentStatus } from '../../entities';
+import { TokenAppointment, Appointment, Doctor, TokenAppointmentStatus, AppointmentStatus } from '../../entities';
 import { CreateTokenAppointmentDto } from './dto/create-token-appointment.dto';
 
 @Injectable()
@@ -171,9 +171,9 @@ export class TokenAppointmentsService {
       
       // Update status based on booking count
       if (appointment.currentBookings >= appointment.maxPatients) {
-        appointment.status = 'Booked' as any;
+        appointment.status = AppointmentStatus.BOOKED;
       } else if (appointment.currentBookings === 0) {
-        appointment.status = 'Available' as any;
+        appointment.status = AppointmentStatus.AVAILABLE;
       }
       
       await this.appointmentRepository.save(appointment);

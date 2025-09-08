@@ -120,7 +120,8 @@ export class AssistantBookingService {
       throw new ForbiddenException('Assistant can only view slots for their assigned doctor');
     }
 
-    return this.appointmentRepository.find({
+    // Get all appointments with basic conditions
+    const appointments = await this.appointmentRepository.find({
       where: {
         doctorId,
         date: new Date(date),
@@ -129,6 +130,11 @@ export class AssistantBookingService {
       relations: ['clinic'],
       order: { startTime: 'ASC' },
     });
+
+    // Filter out fully booked slots
+    return appointments.filter(appointment => 
+      appointment.currentBookings < appointment.maxPatients
+    );
   }
 
   async getDoctorBookings(doctorId: number, date: string, assistantId: number): Promise<TokenAppointment[]> {
@@ -254,9 +260,9 @@ export class AssistantBookingService {
       
       // Update status based on booking count
       if (appointment.currentBookings >= appointment.maxPatients) {
-        appointment.status = 'Booked' as any;
+        appointment.status = AppointmentStatus.BOOKED;
       } else if (appointment.currentBookings === 0) {
-        appointment.status = 'Available' as any;
+        appointment.status = AppointmentStatus.AVAILABLE;
       }
       
       await this.appointmentRepository.save(appointment);

@@ -114,11 +114,17 @@ export class AppointmentsService {
       whereCondition.date = new Date(date);
     }
 
-    return this.appointmentRepository.find({
+    // Get all appointments with the basic conditions
+    const appointments = await this.appointmentRepository.find({
       where: whereCondition,
       relations: ['doctor', 'clinic'],
       order: { date: 'ASC', startTime: 'ASC' },
     });
+
+    // Filter out fully booked slots
+    return appointments.filter(appointment => 
+      appointment.currentBookings < appointment.maxPatients
+    );
   }
 
   async updateStatus(id: number, status: AppointmentStatus): Promise<Appointment> {
