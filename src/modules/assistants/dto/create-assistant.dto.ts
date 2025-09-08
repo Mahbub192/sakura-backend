@@ -24,9 +24,4 @@ export class CreateAssistantDto {
   @IsInt()
   @Min(0)
   experience?: number;
-
-  @ApiProperty({ description: 'Doctor ID to associate with' })
-  @IsInt()
-  @Min(1)
-  doctorId: number;
 }

@@ -46,11 +46,10 @@ export class AssistantsController {
   @Get()
   @UseGuards(RolesGuard)
   @Roles(RoleType.DOCTOR)
-  @ApiOperation({ summary: 'Get all assistants for a doctor' })
+  @ApiOperation({ summary: 'Get all assistants for current doctor' })
   @ApiResponse({ status: 200, description: 'List of assistants' })
-  @ApiQuery({ name: 'doctorId', description: 'Doctor ID to filter assistants' })
-  findAllByDoctor(@Query('doctorId') doctorId: string, @CurrentUser() user: any) {
-    return this.assistantsService.findAllByDoctor(+doctorId, user.userId);
+  findAllByDoctor(@CurrentUser() user: any) {
+    return this.assistantsService.findAllByCurrentDoctor(user.userId);
   }
 
   @Get(':id')

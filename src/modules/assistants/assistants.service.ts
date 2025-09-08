@@ -14,20 +14,16 @@ export class AssistantsService {
   ) {}
 
   async create(createAssistantDto: CreateAssistantDto, currentUserId: number): Promise<Assistant> {
-    const { doctorId, email, ...assistantData } = createAssistantDto;
+    const { email, ...assistantData } = createAssistantDto;
 
-    // Check if doctor exists and belongs to current user
+    // Find doctor by current user ID
     const doctor = await this.doctorRepository.findOne({
-      where: { id: doctorId },
+      where: { userId: currentUserId },
       relations: ['user'],
     });
 
     if (!doctor) {
-      throw new NotFoundException('Doctor not found');
-    }
-
-    if (doctor.userId !== currentUserId) {
-      throw new ForbiddenException('You can only create assistants for your own doctor profile');
+      throw new NotFoundException('Doctor profile not found for current user');
     }
 
     // Check if email is already in use
@@ -42,10 +38,27 @@ export class AssistantsService {
     const assistant = this.assistantRepository.create({
       ...assistantData,
       email,
-      doctorId,
+      doctorId: doctor.id,
     });
 
     return this.assistantRepository.save(assistant);
+  }
+
+  async findAllByCurrentDoctor(currentUserId: number): Promise<Assistant[]> {
+    // Find doctor by current user ID
+    const doctor = await this.doctorRepository.findOne({
+      where: { userId: currentUserId },
+      relations: ['user'],
+    });
+
+    if (!doctor) {
+      throw new NotFoundException('Doctor profile not found for current user');
+    }
+
+    return this.assistantRepository.find({
+      where: { doctorId: doctor.id },
+      relations: ['doctor'],
+    });
   }
 
   async findAllByDoctor(doctorId: number, currentUserId: number): Promise<Assistant[]> {
