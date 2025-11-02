@@ -30,6 +30,8 @@ async function bootstrap() {
     .addTag('Clinics', 'Clinic management')
     .addTag('Appointments', 'Appointment slot management')
     .addTag('Token Appointments', 'Patient booking management')
+    .addTag('Patients', 'Patient self-booking and profile management')
+    .addTag('Public', 'Public endpoints (no authentication required)')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

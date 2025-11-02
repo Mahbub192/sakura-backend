@@ -1,0 +1,320 @@
+# Doctor Appointment Management System - Cursor Rules
+
+## Project Overview
+This is a NestJS-based doctor appointment management system with PostgreSQL database, TypeORM, and JWT authentication. The system provides role-based access control for admins, doctors, assistants, and patients.
+
+## Technology Stack
+- **Framework**: NestJS 11.x
+- **Language**: TypeScript (ES2023)
+- **Database**: PostgreSQL with TypeORM 0.3.x
+- **Authentication**: JWT with Passport (passport-jwt, passport-local)
+- **Validation**: class-validator, class-transformer
+- **Documentation**: Swagger/OpenAPI (@nestjs/swagger)
+- **Password Hashing**: bcryptjs
+- **Configuration**: @nestjs/config with Joi validation
+
+## Project Structure
+```
+src/
+├── auth/                    # Authentication module (JWT, Local strategies)
+├── common/                  # Shared utilities
+│   ├── decorators/         # Custom decorators (CurrentUser, Roles)
+│   ├── guards/             # Auth guards (JWT, Local, Roles)
+│   ├── filters/            # Exception filters
+│   └── interceptors/       # HTTP interceptors
+├── config/                 # Configuration files
+├── database/seeds/         # Database seeding scripts
+├── entities/               # TypeORM entities
+├── modules/                # Feature modules
+│   ├── appointments/
+│   ├── clinics/
+│   ├── doctors/
+│   ├── assistants/
+│   ├── token-appointments/
+│   └── users/
+├── app.module.ts
+└── main.ts
+```
+
+## Code Conventions
+
+### General Rules
+1. **Use TypeScript strict mode patterns** - Prefer explicit types, avoid `any` when possible
+2. **Follow NestJS modular architecture** - Each feature should be in its own module
+3. **Use dependency injection** - Always inject dependencies via constructor
+4. **Follow single responsibility principle** - Services should have focused, single purposes
+5. **Use async/await** - Prefer async/await over Promises.then()
+6. **Handle errors properly** - Use NestJS exception classes (NotFoundException, ConflictException, etc.)
+
+### File Naming
+- **Entities**: `*.entity.ts` (e.g., `user.entity.ts`)
+- **DTOs**: `*.dto.ts` (e.g., `create-user.dto.ts`, `update-user.dto.ts`)
+- **Services**: `*.service.ts` (e.g., `users.service.ts`)
+- **Controllers**: `*.controller.ts` (e.g., `users.controller.ts`)
+- **Modules**: `*.module.ts` (e.g., `users.module.ts`)
+- **Guards**: `*.guard.ts` (e.g., `jwt-auth.guard.ts`)
+- **Decorators**: `*.decorator.ts` (e.g., `current-user.decorator.ts`)
+- **Strategies**: `*.strategy.ts` (e.g., `jwt.strategy.ts`)
+
+### TypeORM Entities
+1. **Always use decorators**:
+   - `@Entity('table_name')` for entity class
+   - `@PrimaryGeneratedColumn()` for primary keys
+   - `@Column()` with appropriate options
+   - `@ManyToOne()`, `@OneToOne()`, `@OneToMany()` for relations
+   - `@JoinColumn()` for foreign keys
+
+2. **Include Swagger documentation**:
+   ```typescript
+   @ApiProperty({ description: 'Field description' })
+   @Column({ type: 'varchar' })
+   field: string;
+   ```
+
+3. **Use proper column types**: varchar, int, timestamp, date, time, boolean
+
+4. **Include timestamps**: Always include `createdAt` and `updatedAt`:
+   ```typescript
+   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+   createdAt: Date;
+   ```
+
+5. **Handle sensitive data**: Use `@Exclude()` from class-transformer for passwords
+
+6. **Export entities from index.ts**: Centralize exports in `entities/index.ts`
+
+### DTOs (Data Transfer Objects)
+1. **Use class-validator decorators**:
+   - `@IsEmail()`, `@IsString()`, `@IsNumber()`, `@IsOptional()`
+   - `@MinLength()`, `@MaxLength()`, `@IsPositive()`, `@IsEnum()`
+   - `@IsDateString()` for date strings
+
+2. **Include Swagger documentation**:
+   ```typescript
+   @ApiProperty({ description: 'Field description', required: false })
+   @IsOptional()
+   @IsString()
+   field?: string;
+   ```
+
+3. **Create separate DTOs**: 
+   - `CreateEntityDto` for creation
+   - `UpdateEntityDto` for updates (all fields optional)
+   - Export from `dto/index.ts`
+
+4. **Use enums from entities**: Reference enum types from entity files
+
+### Services
+1. **Use @Injectable() decorator**
+
+2. **Inject repositories via constructor**:
+   ```typescript
+   constructor(
+     @InjectRepository(Entity)
+     private entityRepository: Repository<Entity>,
+   ) {}
+   ```
+
+3. **Return proper types**: Always specify return types (`Promise<Entity>`)
+
+4. **Error handling**: Throw appropriate NestJS exceptions:
+   - `NotFoundException` when entity not found
+   - `ConflictException` for conflicts (duplicate, etc.)
+   - `BadRequestException` for invalid input
+   - `UnauthorizedException` for auth failures
+
+5. **Validation before operations**: Always validate existence, uniqueness, and business rules
+
+6. **Use relations properly**: Load relations when needed:
+   ```typescript
+   await this.repository.findOne({
+     where: { id },
+     relations: ['relation1', 'relation2'],
+   });
+   ```
+
+### Controllers
+1. **Use Swagger decorators extensively**:
+   - `@ApiTags('EntityName')` for controller
+   - `@ApiOperation({ summary: 'Description' })` for each endpoint
+   - `@ApiResponse()` for each possible response
+   - `@ApiBearerAuth()` for protected routes
+   - `@ApiParam()` and `@ApiQuery()` for parameters
+
+2. **Use guards properly**:
+   - `@UseGuards(JwtAuthGuard)` for authentication
+   - `@UseGuards(JwtAuthGuard, RolesGuard)` with `@Roles()` for authorization
+
+3. **Use decorators**:
+   - `@CurrentUser()` for accessing authenticated user
+   - `@Roles(RoleType.ADMIN)` for role-based access
+
+4. **Keep controllers thin**: Delegate business logic to services
+
+5. **Use proper HTTP methods**:
+   - `@Get()` for retrieval
+   - `@Post()` for creation
+   - `@Patch()` for partial updates
+   - `@Delete()` for deletion
+
+6. **Parameter handling**:
+   - Use `@Param('id')` for path parameters (convert to number: `+id`)
+   - Use `@Query()` for query parameters
+   - Use `@Body()` for request body
+
+### Authentication & Authorization
+1. **JWT Strategy**: Use passport-jwt for token validation
+2. **Local Strategy**: Use passport-local for email/password login
+3. **Guards**: 
+   - `JwtAuthGuard` extends `AuthGuard('jwt')`
+   - `RolesGuard` checks user roles from JWT payload
+4. **Role Types**: Use `RoleType` enum from `role.entity.ts`:
+   - `RoleType.ADMIN`
+   - `RoleType.DOCTOR`
+   - `RoleType.ASSISTANT`
+   - `RoleType.USER`
+5. **Password hashing**: Use bcryptjs with salt rounds of 10
+
+### Modules
+1. **Import TypeORM entities**: Use `TypeOrmModule.forFeature([Entity1, Entity2])`
+2. **Import shared modules**: Import `ConfigModule` when needed
+3. **Export services**: Export services if used by other modules
+4. **Structure**: Controllers, Services, DTOs should be in module folder
+
+### Configuration
+1. **Use ConfigModule**: Configuration via `@nestjs/config`
+2. **Validation**: Use Joi schema in `config/validation.ts`
+3. **Environment variables**: Access via `ConfigService`
+4. **Default values**: Provide sensible defaults in `config/configuration.ts`
+5. **Database config**: Support different environments (dev, production)
+
+### Error Handling
+1. **Use NestJS built-in exceptions**:
+   - `NotFoundException`
+   - `ConflictException`
+   - `BadRequestException`
+   - `UnauthorizedException`
+   - `ForbiddenException`
+
+2. **Provide meaningful messages**: Always include descriptive error messages
+
+3. **Validate before operations**: Check existence, uniqueness, and business rules
+
+### Database Patterns
+1. **Use transactions**: When multiple related operations need atomicity
+2. **Handle relations**: Load relations explicitly when needed
+3. **Query optimization**: Use `select` to limit fields when appropriate
+4. **Ordering**: Use `order` in find operations for consistent results
+5. **Pagination**: Consider adding pagination for list endpoints
+
+### API Documentation
+1. **Complete Swagger coverage**: Document all endpoints, DTOs, and responses
+2. **Bearer Auth**: Include `@ApiBearerAuth()` for protected routes
+3. **Tags**: Use consistent tags for grouping endpoints
+4. **Descriptions**: Provide clear, concise descriptions
+
+### Testing
+1. **Test files**: Use `.spec.ts` suffix (e.g., `user.service.spec.ts`)
+2. **E2E tests**: Place in `test/` directory
+3. **Test environment**: Use separate test database configuration
+
+### Imports & Exports
+1. **Barrel exports**: Use `index.ts` files for clean imports
+2. **Absolute imports**: Use TypeScript path aliases if configured
+3. **Group imports**: NestJS, third-party, local modules, types
+
+### Code Style
+1. **Prettier**: Follow Prettier configuration
+2. **ESLint**: Follow ESLint rules (no-explicit-any is off, but prefer typed code)
+3. **Indentation**: Use 2 spaces
+4. **Semicolons**: Use semicolons
+5. **Quotes**: Use single quotes for strings
+
+### Security Best Practices
+1. **Password hashing**: Always hash passwords with bcryptjs
+2. **JWT secrets**: Use strong, environment-based JWT secrets
+3. **Input validation**: Validate all inputs via DTOs and class-validator
+4. **SQL injection**: Use TypeORM parameterized queries (default)
+5. **CORS**: Configure CORS appropriately for production
+6. **SSL**: Use SSL for database connections in production
+
+### Common Patterns
+
+#### Entity Creation Pattern
+```typescript
+const entity = this.repository.create({ ...data });
+return this.repository.save(entity);
+```
+
+#### Find or Throw Pattern
+```typescript
+const entity = await this.repository.findOne({ where: { id } });
+if (!entity) {
+  throw new NotFoundException('Entity not found');
+}
+return entity;
+```
+
+#### Update Pattern
+```typescript
+const entity = await this.findOne(id); // Uses find or throw
+Object.assign(entity, updateDto);
+return this.repository.save(entity);
+```
+
+#### Delete with Validation Pattern
+```typescript
+const entity = await this.findOne(id);
+// Validate business rules before delete
+if (entity.hasRelatedData) {
+  throw new ConflictException('Cannot delete entity with related data');
+}
+await this.repository.remove(entity);
+```
+
+## When Creating New Features
+
+1. **Create module structure**:
+   - `entity.entity.ts`
+   - `dto/` folder with create and update DTOs
+   - `entity.service.ts`
+   - `entity.controller.ts`
+   - `entity.module.ts`
+
+2. **Register in app.module.ts**: Import the new module
+
+3. **Add to Swagger tags**: Use consistent tag naming
+
+4. **Follow existing patterns**: Match the style and structure of existing modules
+
+5. **Add validation**: Always validate inputs and business rules
+
+6. **Document**: Add Swagger documentation for all endpoints
+
+7. **Handle errors**: Use appropriate exception types
+
+8. **Test**: Write tests for critical functionality
+
+## Database Seeding
+- Seeds are in `src/database/seeds/`
+- Run with `npm run seed`
+- Seeds should be idempotent (safe to run multiple times)
+
+## Environment Variables
+Required variables (see `env.example`):
+- `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, `DB_NAME`
+- `JWT_SECRET`, `JWT_EXPIRES_IN`
+- `PORT`, `NODE_ENV`
+
+Always use `ConfigService` to access environment variables, never `process.env` directly in application code.
+
+## Remember
+- This is a healthcare/medical appointment system - prioritize data integrity and validation
+- Follow NestJS best practices and conventions
+- Maintain consistency with existing codebase patterns
+- Document everything with Swagger
+- Handle errors gracefully with appropriate HTTP status codes
+- Use TypeScript types properly - avoid `any` unless absolutely necessary
+- Keep controllers thin, services fat
+- Use dependency injection for all services and repositories
+

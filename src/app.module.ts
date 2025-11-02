@@ -12,6 +12,9 @@ import { AssistantsModule } from './modules/assistants/assistants.module';
 import { AppointmentsModule } from './modules/appointments/appointments.module';
 import { TokenAppointmentsModule } from './modules/token-appointments/token-appointments.module';
 import { ClinicsModule } from './modules/clinics/clinics.module';
+import { PatientsModule } from './modules/patients/patients.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
+import { PublicModule } from './modules/public/public.module';
 import { SeedModule } from './database/seeds/seed.module';
 import { 
   User, 
@@ -58,6 +61,9 @@ import {
     AppointmentsModule,
     TokenAppointmentsModule,
     ClinicsModule,
+    PatientsModule,
+    NotificationsModule,
+    PublicModule,
     SeedModule,
   ],
   controllers: [AppController],
