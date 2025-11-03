@@ -5,9 +5,13 @@ import { AssistantBookingService } from './assistant-booking.service';
 import { TokenAppointmentsController } from './token-appointments.controller';
 import { AssistantBookingController } from './assistant-booking.controller';
 import { TokenAppointment, Appointment, Doctor, Assistant } from '../../entities';
+import { DoctorsModule } from '../doctors/doctors.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([TokenAppointment, Appointment, Doctor, Assistant])],
+  imports: [
+    TypeOrmModule.forFeature([TokenAppointment, Appointment, Doctor, Assistant]),
+    DoctorsModule,
+  ],
   controllers: [TokenAppointmentsController, AssistantBookingController],
   providers: [TokenAppointmentsService, AssistantBookingService],
   exports: [TokenAppointmentsService, AssistantBookingService],

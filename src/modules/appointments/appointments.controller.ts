@@ -22,15 +22,20 @@ import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RoleType } from '../../entities/role.entity';
 import { AppointmentStatus } from '../../entities/appointment.entity';
+import { DoctorsService } from '../doctors/doctors.service';
 
 @ApiTags('Appointments')
 @Controller('appointments')
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class AppointmentsController {
-  constructor(private readonly appointmentsService: AppointmentsService) {}
+  constructor(
+    private readonly appointmentsService: AppointmentsService,
+    private readonly doctorsService: DoctorsService,
+  ) {}
 
   @Post()
   @UseGuards(RolesGuard)
@@ -48,11 +53,25 @@ export class AppointmentsController {
   @ApiQuery({ name: 'doctorId', required: false, description: 'Filter by doctor ID' })
   @ApiQuery({ name: 'startDate', required: false, description: 'Start date for date range filter (YYYY-MM-DD)' })
   @ApiQuery({ name: 'endDate', required: false, description: 'End date for date range filter (YYYY-MM-DD)' })
-  findAll(
+  async findAll(
     @Query('doctorId') doctorId?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
+    @CurrentUser() user?: any,
   ) {
+    // If user is a doctor, automatically filter by their doctor ID
+    if (user && user.role === RoleType.DOCTOR) {
+      try {
+        const doctor = await this.doctorsService.findByUserId(user.userId);
+        if (doctor) {
+          return this.appointmentsService.findByDoctor(doctor.id);
+        }
+      } catch (error) {
+        // If doctor profile doesn't exist, return empty array
+        return [];
+      }
+    }
+
     if (doctorId) {
       return this.appointmentsService.findByDoctor(+doctorId);
     }
@@ -69,13 +88,16 @@ export class AppointmentsController {
   @ApiResponse({ status: 200, description: 'List of available appointment slots' })
   @ApiQuery({ name: 'doctorId', required: false, description: 'Filter by doctor ID' })
   @ApiQuery({ name: 'date', required: false, description: 'Filter by specific date (YYYY-MM-DD)' })
+  @ApiQuery({ name: 'clinicId', required: false, description: 'Filter by clinic ID' })
   findAvailable(
     @Query('doctorId') doctorId?: string,
     @Query('date') date?: string,
+    @Query('clinicId') clinicId?: string,
   ) {
     return this.appointmentsService.findAvailableSlots(
       doctorId ? +doctorId : undefined,
       date,
+      clinicId ? +clinicId : undefined,
     );
   }
 

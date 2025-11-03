@@ -193,7 +193,18 @@ export class DoctorDashboardService {
         });
 
         const savedAppointment = await this.appointmentRepository.save(appointment);
-        createdAppointments.push(savedAppointment);
+        
+        // Load relations for the response
+        const appointmentWithRelations = await this.appointmentRepository.findOne({
+          where: { id: savedAppointment.id },
+          relations: ['doctor', 'clinic', 'doctor.user'],
+        });
+        
+        if (appointmentWithRelations) {
+          createdAppointments.push(appointmentWithRelations);
+        } else {
+          createdAppointments.push(savedAppointment);
+        }
       }
     }
 

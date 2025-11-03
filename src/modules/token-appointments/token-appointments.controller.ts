@@ -25,11 +25,15 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RoleType } from '../../entities/role.entity';
 import { TokenAppointmentStatus } from '../../entities/token-appointment.entity';
+import { DoctorsService } from '../doctors/doctors.service';
 
 @ApiTags('Token Appointments')
 @Controller('token-appointments')
 export class TokenAppointmentsController {
-  constructor(private readonly tokenAppointmentsService: TokenAppointmentsService) {}
+  constructor(
+    private readonly tokenAppointmentsService: TokenAppointmentsService,
+    private readonly doctorsService: DoctorsService,
+  ) {}
 
   @Post()
   @ApiOperation({ summary: 'Book an appointment (create token appointment)' })
@@ -46,7 +50,20 @@ export class TokenAppointmentsController {
   @ApiOperation({ summary: 'Get all token appointments' })
   @ApiResponse({ status: 200, description: 'List of all token appointments' })
   @ApiQuery({ name: 'doctorId', required: false, description: 'Filter by doctor ID' })
-  findAll(@Query('doctorId') doctorId?: string) {
+  async findAll(@Query('doctorId') doctorId?: string, @CurrentUser() user?: any) {
+    // If user is a doctor, automatically filter by their doctor ID
+    if (user && user.role === RoleType.DOCTOR && !doctorId) {
+      try {
+        const doctor = await this.doctorsService.findByUserId(user.userId);
+        if (doctor) {
+          return this.tokenAppointmentsService.findByDoctor(doctor.id);
+        }
+      } catch (error) {
+        // If doctor profile doesn't exist, return empty array
+        return [];
+      }
+    }
+
     if (doctorId) {
       return this.tokenAppointmentsService.findByDoctor(+doctorId);
     }

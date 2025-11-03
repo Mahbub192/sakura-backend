@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User, Role } from '../../entities';
 import { CreateUserDto, UpdateUserDto } from './dto';
+import { CreateMyUserProfileDto } from './dto/create-my-profile.dto';
 import * as bcrypt from 'bcryptjs';
 
 @Injectable()
@@ -127,6 +128,13 @@ export class UsersService {
   async activateUser(id: number): Promise<User> {
     const user = await this.findOne(id);
     user.isActive = true;
+    return this.userRepository.save(user);
+  }
+
+  async updateMyProfile(userId: number, updateProfileDto: CreateMyUserProfileDto): Promise<User> {
+    const user = await this.findOne(userId);
+    
+    Object.assign(user, updateProfileDto);
     return this.userRepository.save(user);
   }
 }

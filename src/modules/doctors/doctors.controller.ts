@@ -22,6 +22,7 @@ import { DoctorDashboardService } from './doctor-dashboard.service';
 import { CreateDoctorDto, UpdateDoctorDto } from './dto';
 import { CreateAppointmentScheduleDto } from './dto/create-appointment-schedule.dto';
 import { UpdateDoctorProfileDto } from './dto/update-doctor-profile.dto';
+import { CreateMyDoctorProfileDto } from './dto/create-my-profile.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -52,7 +53,19 @@ export class DoctorsController {
   @ApiOperation({ summary: 'Get all doctors' })
   @ApiResponse({ status: 200, description: 'List of all doctors' })
   @ApiQuery({ name: 'specialization', required: false, description: 'Filter by specialization' })
-  findAll(@Query('specialization') specialization?: string) {
+  async findAll(@Query('specialization') specialization?: string, @CurrentUser() user?: any) {
+    // If user is a doctor, return only their own profile
+    if (user && user.role === RoleType.DOCTOR) {
+      try {
+        const doctor = await this.doctorsService.findByUserId(user.userId);
+        if (doctor) {
+          return [doctor];
+        }
+      } catch (error) {
+        return [];
+      }
+    }
+
     if (specialization) {
       return this.doctorsService.findBySpecialization(specialization);
     }
@@ -67,6 +80,25 @@ export class DoctorsController {
   @ApiResponse({ status: 404, description: 'Doctor profile not found' })
   getProfile(@CurrentUser() user: any) {
     return this.doctorsService.findByUserId(user.userId);
+  }
+
+  @Get('check-profile')
+  @UseGuards(RolesGuard)
+  @Roles(RoleType.DOCTOR)
+  @ApiOperation({ summary: 'Check if doctor profile exists' })
+  @ApiResponse({ status: 200, description: 'Profile check result' })
+  checkProfile(@CurrentUser() user: any) {
+    return this.doctorsService.checkProfileExists(user.userId);
+  }
+
+  @Post('my-profile')
+  @UseGuards(RolesGuard)
+  @Roles(RoleType.DOCTOR)
+  @ApiOperation({ summary: 'Create my doctor profile (self-service)' })
+  @ApiResponse({ status: 201, description: 'Doctor profile created successfully' })
+  @ApiResponse({ status: 409, description: 'Doctor profile already exists' })
+  createMyProfile(@Body() createProfileDto: CreateMyDoctorProfileDto, @CurrentUser() user: any) {
+    return this.doctorsService.createMyProfile(user.userId, createProfileDto);
   }
 
   @Get(':id')

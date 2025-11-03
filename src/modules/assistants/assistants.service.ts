@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Assistant, Doctor, User, Role, RoleType } from '../../entities';
 import { CreateAssistantDto, UpdateAssistantDto } from './dto';
+import { CreateMyAssistantProfileDto } from './dto/create-my-profile.dto';
 import * as bcrypt from 'bcryptjs';
 
 @Injectable()
@@ -190,5 +191,64 @@ export class AssistantsService {
     }
 
     return assistant;
+  }
+
+  async createMyProfile(userId: number, createProfileDto: CreateMyAssistantProfileDto): Promise<Assistant> {
+    const { doctorId, name, phone, ...assistantData } = createProfileDto;
+
+    // Check if user exists and has assistant role
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      relations: ['role'],
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (user.role.name !== 'Assistant') {
+      throw new ConflictException('User must have Assistant role');
+    }
+
+    // Check if assistant profile already exists for this user
+    const existingAssistant = await this.assistantRepository.findOne({
+      where: { userId },
+    });
+
+    if (existingAssistant) {
+      throw new ConflictException('Assistant profile already exists for this user');
+    }
+
+    // Verify doctor exists
+    const doctor = await this.doctorRepository.findOne({
+      where: { id: doctorId },
+    });
+
+    if (!doctor) {
+      throw new NotFoundException('Doctor not found');
+    }
+
+    // Get user's email (should exist)
+    const email = user.email;
+
+    // Create assistant profile
+    const assistant = this.assistantRepository.create({
+      ...assistantData,
+      name,
+      email,
+      phone,
+      doctorId,
+      userId,
+      isActive: true,
+    });
+
+    return this.assistantRepository.save(assistant);
+  }
+
+  async checkProfileExists(userId: number): Promise<boolean> {
+    const assistant = await this.assistantRepository.findOne({
+      where: { userId },
+    });
+    return !!assistant;
   }
 }

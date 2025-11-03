@@ -19,6 +19,7 @@ import {
 } from '@nestjs/swagger';
 import { AssistantsService } from './assistants.service';
 import { CreateAssistantDto, UpdateAssistantDto } from './dto';
+import { CreateMyAssistantProfileDto } from './dto/create-my-profile.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -111,6 +112,15 @@ export class AssistantsController {
     return this.assistantsService.changePassword(+id, body.newPassword, user.userId);
   }
 
+  @Get('check-profile')
+  @UseGuards(RolesGuard)
+  @Roles(RoleType.ASSISTANT)
+  @ApiOperation({ summary: 'Check if assistant profile exists' })
+  @ApiResponse({ status: 200, description: 'Profile check result' })
+  checkProfile(@CurrentUser() user: any) {
+    return this.assistantsService.checkProfileExists(user.userId);
+  }
+
   @Get('profile')
   @UseGuards(RolesGuard)
   @Roles(RoleType.ASSISTANT)
@@ -119,5 +129,15 @@ export class AssistantsController {
   @ApiResponse({ status: 404, description: 'Assistant profile not found' })
   getProfile(@CurrentUser() user: any) {
     return this.assistantsService.getAssistantByUserId(user.userId);
+  }
+
+  @Post('my-profile')
+  @UseGuards(RolesGuard)
+  @Roles(RoleType.ASSISTANT)
+  @ApiOperation({ summary: 'Create my assistant profile (self-service)' })
+  @ApiResponse({ status: 201, description: 'Assistant profile created successfully' })
+  @ApiResponse({ status: 409, description: 'Assistant profile already exists' })
+  createMyProfile(@Body() createProfileDto: CreateMyAssistantProfileDto, @CurrentUser() user: any) {
+    return this.assistantsService.createMyProfile(user.userId, createProfileDto);
   }
 }

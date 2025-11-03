@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Doctor, User } from '../../entities';
 import { CreateDoctorDto, UpdateDoctorDto } from './dto';
+import { CreateMyDoctorProfileDto } from './dto/create-my-profile.dto';
 
 @Injectable()
 export class DoctorsService {
@@ -15,6 +16,50 @@ export class DoctorsService {
 
   async create(createDoctorDto: CreateDoctorDto): Promise<Doctor> {
     const { userId, licenseNumber, ...doctorData } = createDoctorDto;
+
+    // Check if user exists and has doctor role
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      relations: ['role'],
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (user.role.name !== 'Doctor') {
+      throw new ConflictException('User must have Doctor role');
+    }
+
+    // Check if doctor already exists for this user
+    const existingDoctor = await this.doctorRepository.findOne({
+      where: { userId },
+    });
+
+    if (existingDoctor) {
+      throw new ConflictException('Doctor profile already exists for this user');
+    }
+
+    // Check if license number is unique
+    const existingLicense = await this.doctorRepository.findOne({
+      where: { licenseNumber },
+    });
+
+    if (existingLicense) {
+      throw new ConflictException('License number already exists');
+    }
+
+    const doctor = this.doctorRepository.create({
+      ...doctorData,
+      licenseNumber,
+      userId,
+    });
+
+    return this.doctorRepository.save(doctor);
+  }
+
+  async createMyProfile(userId: number, createProfileDto: CreateMyDoctorProfileDto): Promise<Doctor> {
+    const { licenseNumber, ...doctorData } = createProfileDto;
 
     // Check if user exists and has doctor role
     const user = await this.userRepository.findOne({
@@ -116,5 +161,12 @@ export class DoctorsService {
       where: { specialization },
       relations: ['user'],
     });
+  }
+
+  async checkProfileExists(userId: number): Promise<boolean> {
+    const doctor = await this.doctorRepository.findOne({
+      where: { userId },
+    });
+    return !!doctor;
   }
 }

@@ -35,16 +35,41 @@ export class AppointmentsService {
       throw new BadRequestException('Start time must be before end time');
     }
 
-    // Check for overlapping appointments for the same doctor
-    const overlappingAppointment = await this.appointmentRepository.findOne({
+    // Check for overlapping appointments for the same doctor on the same date
+    const existingAppointments = await this.appointmentRepository.find({
       where: {
         doctorId,
         date: new Date(date),
-        startTime: Between(startTime, endTime),
       },
     });
 
-    if (overlappingAppointment) {
+    // Helper function to convert time string to minutes for comparison
+    const timeToMinutes = (timeStr: string): number => {
+      const [hours, minutes] = timeStr.split(':').map(Number);
+      return hours * 60 + minutes;
+    };
+
+    const newStartMinutes = timeToMinutes(startTime);
+    const newEndMinutes = timeToMinutes(endTime);
+
+    // Check for overlaps
+    const hasOverlap = existingAppointments.some(existing => {
+      const existingStartMinutes = timeToMinutes(existing.startTime);
+      const existingEndMinutes = timeToMinutes(existing.endTime);
+
+      // Check if new slot overlaps with existing slot
+      // Overlap occurs if:
+      // 1. New start time is within existing slot: existingStartMinutes <= newStartMinutes < existingEndMinutes
+      // 2. New end time is within existing slot: existingStartMinutes < newEndMinutes <= existingEndMinutes
+      // 3. New slot completely covers existing slot: newStartMinutes <= existingStartMinutes && newEndMinutes >= existingEndMinutes
+      return (
+        (newStartMinutes >= existingStartMinutes && newStartMinutes < existingEndMinutes) ||
+        (newEndMinutes > existingStartMinutes && newEndMinutes <= existingEndMinutes) ||
+        (newStartMinutes <= existingStartMinutes && newEndMinutes >= existingEndMinutes)
+      );
+    });
+
+    if (hasOverlap) {
       throw new ConflictException('Doctor has conflicting appointment at this time');
     }
 
@@ -101,30 +126,57 @@ export class AppointmentsService {
     });
   }
 
-  async findAvailableSlots(doctorId?: number, date?: string): Promise<Appointment[]> {
-    const whereCondition: any = {
-      status: AppointmentStatus.AVAILABLE,
-    };
+  async findAvailableSlots(doctorId?: number, date?: string, clinicId?: number): Promise<Appointment[]> {
+    console.log('findAvailableSlots called with:', { doctorId, date, clinicId });
+    
+    const queryBuilder = this.appointmentRepository.createQueryBuilder('appointment')
+      .leftJoinAndSelect('appointment.doctor', 'doctor')
+      .leftJoinAndSelect('appointment.clinic', 'clinic')
+      .where('appointment.status = :status', { status: AppointmentStatus.AVAILABLE })
+      .andWhere('appointment.currentBookings < appointment.maxPatients');
 
     if (doctorId) {
-      whereCondition.doctorId = doctorId;
+      queryBuilder.andWhere('appointment.doctorId = :doctorId', { doctorId });
     }
 
     if (date) {
-      whereCondition.date = new Date(date);
+      // Extract date part from input (handle both YYYY-MM-DD and ISO strings)
+      const dateStr = date.split('T')[0]; // Handle ISO strings - format: YYYY-MM-DD
+      console.log('Filtering by date:', dateStr);
+      
+      // Convert to date object for comparison (PostgreSQL date type)
+      const targetDate = new Date(dateStr);
+      targetDate.setHours(0, 0, 0, 0);
+      const nextDay = new Date(targetDate);
+      nextDay.setDate(nextDay.getDate() + 1);
+      
+      // Use range comparison for date (includes whole day)
+      queryBuilder.andWhere('appointment.date >= :startDate', { startDate: targetDate })
+                   .andWhere('appointment.date < :endDate', { endDate: nextDay });
+    } else {
+      // Only show future or today's appointments if no date filter
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      console.log('Filtering by today/future, today:', today);
+      queryBuilder.andWhere('appointment.date >= :today', { today });
     }
 
-    // Get all appointments with the basic conditions
-    const appointments = await this.appointmentRepository.find({
-      where: whereCondition,
-      relations: ['doctor', 'clinic'],
-      order: { date: 'ASC', startTime: 'ASC' },
-    });
+    if (clinicId) {
+      queryBuilder.andWhere('appointment.clinicId = :clinicId', { clinicId });
+    }
 
-    // Filter out fully booked slots
-    return appointments.filter(appointment => 
-      appointment.currentBookings < appointment.maxPatients
-    );
+    queryBuilder.orderBy('appointment.date', 'ASC')
+                .addOrderBy('appointment.startTime', 'ASC');
+
+    const sql = queryBuilder.getSql();
+    const params = queryBuilder.getParameters();
+    console.log('Query SQL:', sql);
+    console.log('Query Parameters:', params);
+
+    const results = await queryBuilder.getMany();
+    console.log(`Found ${results.length} available slots`);
+    
+    return results;
   }
 
   async updateStatus(id: number, status: AppointmentStatus): Promise<Appointment> {
