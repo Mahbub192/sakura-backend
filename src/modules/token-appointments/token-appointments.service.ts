@@ -109,6 +109,39 @@ export class TokenAppointmentsService {
     });
   }
 
+  async findWithFilters(doctorId?: number, clinicId?: number, date?: string): Promise<TokenAppointment[]> {
+    const queryBuilder = this.tokenAppointmentRepository
+      .createQueryBuilder('tokenAppointment')
+      .leftJoinAndSelect('tokenAppointment.doctor', 'doctor')
+      .leftJoinAndSelect('tokenAppointment.appointment', 'appointment')
+      .leftJoinAndSelect('appointment.clinic', 'clinic');
+
+    // Filter by doctorId
+    if (doctorId) {
+      queryBuilder.andWhere('tokenAppointment.doctorId = :doctorId', { doctorId });
+    }
+
+    // Filter by clinicId (through appointment)
+    if (clinicId) {
+      queryBuilder.andWhere('appointment.clinicId = :clinicId', { clinicId });
+    }
+
+    // Filter by date (compare only the date part, ignoring time)
+    if (date) {
+      const targetDate = new Date(date);
+      const startOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+      const endOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 23, 59, 59, 999);
+      
+      queryBuilder.andWhere('tokenAppointment.date >= :startOfDay', { startOfDay });
+      queryBuilder.andWhere('tokenAppointment.date <= :endOfDay', { endOfDay });
+    }
+
+    return queryBuilder
+      .orderBy('tokenAppointment.date', 'ASC')
+      .addOrderBy('tokenAppointment.time', 'ASC')
+      .getMany();
+  }
+
   async findByTokenNumber(tokenNumber: string): Promise<TokenAppointment> {
     const tokenAppointment = await this.tokenAppointmentRepository.findOne({
       where: { tokenNumber },

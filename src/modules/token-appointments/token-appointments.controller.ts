@@ -50,13 +50,20 @@ export class TokenAppointmentsController {
   @ApiOperation({ summary: 'Get all token appointments' })
   @ApiResponse({ status: 200, description: 'List of all token appointments' })
   @ApiQuery({ name: 'doctorId', required: false, description: 'Filter by doctor ID' })
-  async findAll(@Query('doctorId') doctorId?: string, @CurrentUser() user?: any) {
+  @ApiQuery({ name: 'clinicId', required: false, description: 'Filter by clinic ID' })
+  @ApiQuery({ name: 'date', required: false, description: 'Filter by date (YYYY-MM-DD)' })
+  async findAll(
+    @Query('doctorId') doctorId?: string,
+    @Query('clinicId') clinicId?: string,
+    @Query('date') date?: string,
+    @CurrentUser() user?: any,
+  ) {
     // If user is a doctor, automatically filter by their doctor ID
     if (user && user.role === RoleType.DOCTOR && !doctorId) {
       try {
         const doctor = await this.doctorsService.findByUserId(user.userId);
         if (doctor) {
-          return this.tokenAppointmentsService.findByDoctor(doctor.id);
+          return this.tokenAppointmentsService.findWithFilters(doctor.id, clinicId ? +clinicId : undefined, date);
         }
       } catch (error) {
         // If doctor profile doesn't exist, return empty array
@@ -64,10 +71,11 @@ export class TokenAppointmentsController {
       }
     }
 
-    if (doctorId) {
-      return this.tokenAppointmentsService.findByDoctor(+doctorId);
-    }
-    return this.tokenAppointmentsService.findAll();
+    return this.tokenAppointmentsService.findWithFilters(
+      doctorId ? +doctorId : undefined,
+      clinicId ? +clinicId : undefined,
+      date,
+    );
   }
 
   @Get('my-appointments')
