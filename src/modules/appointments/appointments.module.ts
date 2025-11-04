@@ -6,11 +6,13 @@ import { AppointmentsController } from './appointments.controller';
 import { GlobalDashboardController } from './global-dashboard.controller';
 import { Appointment, Doctor, Clinic, TokenAppointment } from '../../entities';
 import { DoctorsModule } from '../doctors/doctors.module';
+import { AssistantsModule } from '../assistants/assistants.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Appointment, Doctor, Clinic, TokenAppointment]),
     DoctorsModule,
+    AssistantsModule,
   ],
   controllers: [AppointmentsController, GlobalDashboardController],
   providers: [AppointmentsService, GlobalDashboardService],

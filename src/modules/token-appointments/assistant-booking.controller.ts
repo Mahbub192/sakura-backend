@@ -7,6 +7,7 @@ import {
   Param,
   Query,
   UseGuards,
+  ForbiddenException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -36,20 +37,25 @@ export class AssistantBookingController {
   ) {}
 
   @Post('book-patient')
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RoleType.ASSISTANT)
   @ApiOperation({ summary: 'Book appointment for patient (Assistant only)' })
   @ApiResponse({ status: 201, description: 'Patient appointment booked successfully' })
   @ApiResponse({ status: 403, description: 'Forbidden - Only assistants can book appointments' })
   @ApiResponse({ status: 409, description: 'Conflict - Slot fully booked or patient already has appointment' })
   async bookPatient(@Body() createBookingDto: CreatePatientBookingDto, @CurrentUser() user: any) {
+    // Verify user has Assistant role
+    if (user?.role !== RoleType.ASSISTANT) {
+      console.error('[book-patient] User role check failed:', { user, required: RoleType.ASSISTANT });
+      throw new ForbiddenException(`Only assistants can book appointments. Current role: ${user?.role || 'undefined'}`);
+    }
     // Fetch assistant profile by userId
     const assistant = await this.assistantsService.getAssistantByUserId(user.userId);
     return this.assistantBookingService.createPatientBooking(createBookingDto, assistant.id);
   }
 
   @Get('available-slots')
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RoleType.ASSISTANT)
   @ApiOperation({ summary: 'Get available appointment slots for doctor' })
   @ApiResponse({ status: 200, description: 'Available slots retrieved' })
@@ -61,7 +67,7 @@ export class AssistantBookingController {
   }
 
   @Get('doctor-bookings')
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RoleType.ASSISTANT)
   @ApiOperation({ summary: 'Get all bookings for doctor on specific date' })
   @ApiResponse({ status: 200, description: 'Doctor bookings retrieved' })
@@ -73,7 +79,7 @@ export class AssistantBookingController {
   }
 
   @Get('todays-bookings')
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RoleType.ASSISTANT)
   @ApiOperation({ summary: 'Get today\'s bookings for assistant\'s doctor' })
   @ApiResponse({ status: 200, description: 'Today\'s bookings retrieved' })
@@ -83,7 +89,7 @@ export class AssistantBookingController {
   }
 
   @Patch('booking/:id/status')
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RoleType.ASSISTANT)
   @ApiOperation({ summary: 'Update booking status' })
   @ApiResponse({ status: 200, description: 'Booking status updated' })
@@ -96,7 +102,7 @@ export class AssistantBookingController {
   }
 
   @Get('search-patients')
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RoleType.ASSISTANT)
   @ApiOperation({ summary: 'Search patient bookings by name, phone, or email' })
   @ApiResponse({ status: 200, description: 'Patient bookings found' })

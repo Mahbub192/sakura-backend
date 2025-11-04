@@ -8,6 +8,7 @@ import {
   Delete,
   UseGuards,
   Query,
+  NotFoundException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -28,6 +29,7 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RoleType } from '../../entities/role.entity';
+import { AssistantsService } from '../assistants/assistants.service';
 
 @ApiTags('Doctors')
 @Controller('doctors')
@@ -37,6 +39,7 @@ export class DoctorsController {
   constructor(
     private readonly doctorsService: DoctorsService,
     private readonly dashboardService: DoctorDashboardService,
+    private readonly assistantsService: AssistantsService,
   ) {}
 
   @Post()
@@ -54,6 +57,19 @@ export class DoctorsController {
   @ApiResponse({ status: 200, description: 'List of all doctors' })
   @ApiQuery({ name: 'specialization', required: false, description: 'Filter by specialization' })
   async findAll(@Query('specialization') specialization?: string, @CurrentUser() user?: any) {
+    // If user is an assistant, return only their assigned doctor's profile
+    if (user && user.role === RoleType.ASSISTANT) {
+      try {
+        const assistant = await this.assistantsService.getAssistantByUserId(user.userId);
+        if (assistant && assistant.doctorId) {
+          const doctor = await this.doctorsService.findOne(assistant.doctorId);
+          return doctor ? [doctor] : [];
+        }
+      } catch (error) {
+        return [];
+      }
+    }
+
     // If user is a doctor, return only their own profile
     if (user && user.role === RoleType.DOCTOR) {
       try {
@@ -74,11 +90,20 @@ export class DoctorsController {
 
   @Get('profile')
   @UseGuards(RolesGuard)
-  @Roles(RoleType.DOCTOR)
-  @ApiOperation({ summary: 'Get current doctor profile' })
+  @Roles(RoleType.DOCTOR, RoleType.ASSISTANT)
+  @ApiOperation({ summary: 'Get current doctor profile (Doctor or Assistant)' })
   @ApiResponse({ status: 200, description: 'Doctor profile retrieved' })
   @ApiResponse({ status: 404, description: 'Doctor profile not found' })
-  getProfile(@CurrentUser() user: any) {
+  async getProfile(@CurrentUser() user: any) {
+    // If assistant, return their assigned doctor's profile
+    if (user.role === RoleType.ASSISTANT) {
+      const assistant = await this.assistantsService.getAssistantByUserId(user.userId);
+      if (assistant && assistant.doctorId) {
+        return this.doctorsService.findOne(assistant.doctorId);
+      }
+      throw new NotFoundException('Assistant doctor not found');
+    }
+    // If doctor, return their own profile
     return this.doctorsService.findByUserId(user.userId);
   }
 
@@ -135,19 +160,41 @@ export class DoctorsController {
   // Dashboard endpoints
   @Get('dashboard/stats')
   @UseGuards(RolesGuard)
-  @Roles(RoleType.DOCTOR)
-  @ApiOperation({ summary: 'Get doctor dashboard statistics' })
+  @Roles(RoleType.DOCTOR, RoleType.ASSISTANT)
+  @ApiOperation({ summary: 'Get doctor dashboard statistics (Doctor or Assistant)' })
   @ApiResponse({ status: 200, description: 'Dashboard statistics retrieved' })
-  getDashboardStats(@CurrentUser() user: any) {
+  async getDashboardStats(@CurrentUser() user: any) {
+    // If assistant, get stats for their assigned doctor
+    if (user.role === RoleType.ASSISTANT) {
+      const assistant = await this.assistantsService.getAssistantByUserId(user.userId);
+      if (assistant && assistant.doctorId) {
+        const doctor = await this.doctorsService.findOne(assistant.doctorId);
+        if (doctor && doctor.userId) {
+          return this.dashboardService.getDashboardStats(doctor.userId);
+        }
+      }
+      throw new NotFoundException('Assistant doctor not found');
+    }
     return this.dashboardService.getDashboardStats(user.userId);
   }
 
   @Get('dashboard/today-appointments')
   @UseGuards(RolesGuard)
-  @Roles(RoleType.DOCTOR)
-  @ApiOperation({ summary: 'Get today\'s appointments for doctor' })
+  @Roles(RoleType.DOCTOR, RoleType.ASSISTANT)
+  @ApiOperation({ summary: 'Get today\'s appointments for doctor (Doctor or Assistant)' })
   @ApiResponse({ status: 200, description: 'Today\'s appointments retrieved' })
-  getTodayAppointments(@CurrentUser() user: any) {
+  async getTodayAppointments(@CurrentUser() user: any) {
+    // If assistant, get appointments for their assigned doctor
+    if (user.role === RoleType.ASSISTANT) {
+      const assistant = await this.assistantsService.getAssistantByUserId(user.userId);
+      if (assistant && assistant.doctorId) {
+        const doctor = await this.doctorsService.findOne(assistant.doctorId);
+        if (doctor && doctor.userId) {
+          return this.dashboardService.getTodayAppointments(doctor.userId);
+        }
+      }
+      throw new NotFoundException('Assistant doctor not found');
+    }
     return this.dashboardService.getTodayAppointments(user.userId);
   }
 
@@ -163,12 +210,23 @@ export class DoctorsController {
 
   @Get('dashboard/upcoming-appointments')
   @UseGuards(RolesGuard)
-  @Roles(RoleType.DOCTOR)
-  @ApiOperation({ summary: 'Get upcoming appointments' })
+  @Roles(RoleType.DOCTOR, RoleType.ASSISTANT)
+  @ApiOperation({ summary: 'Get upcoming appointments (Doctor or Assistant)' })
   @ApiResponse({ status: 200, description: 'Upcoming appointments retrieved' })
   @ApiQuery({ name: 'limit', required: false, description: 'Number of appointments to retrieve' })
-  getUpcomingAppointments(@CurrentUser() user: any, @Query('limit') limit?: string) {
+  async getUpcomingAppointments(@CurrentUser() user: any, @Query('limit') limit?: string) {
     const limitNum = limit ? parseInt(limit) : 10;
+    // If assistant, get appointments for their assigned doctor
+    if (user.role === RoleType.ASSISTANT) {
+      const assistant = await this.assistantsService.getAssistantByUserId(user.userId);
+      if (assistant && assistant.doctorId) {
+        const doctor = await this.doctorsService.findOne(assistant.doctorId);
+        if (doctor && doctor.userId) {
+          return this.dashboardService.getUpcomingAppointments(doctor.userId, limitNum);
+        }
+      }
+      throw new NotFoundException('Assistant doctor not found');
+    }
     return this.dashboardService.getUpcomingAppointments(user.userId, limitNum);
   }
 

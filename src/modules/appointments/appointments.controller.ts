@@ -26,6 +26,7 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RoleType } from '../../entities/role.entity';
 import { AppointmentStatus } from '../../entities/appointment.entity';
 import { DoctorsService } from '../doctors/doctors.service';
+import { AssistantsService } from '../assistants/assistants.service';
 
 @ApiTags('Appointments')
 @Controller('appointments')
@@ -35,6 +36,7 @@ export class AppointmentsController {
   constructor(
     private readonly appointmentsService: AppointmentsService,
     private readonly doctorsService: DoctorsService,
+    private readonly assistantsService: AssistantsService,
   ) {}
 
   @Post()
@@ -68,6 +70,19 @@ export class AppointmentsController {
         }
       } catch (error) {
         // If doctor profile doesn't exist, return empty array
+        return [];
+      }
+    }
+
+    // If user is an assistant, automatically filter by their assigned doctor ID
+    if (user && user.role === RoleType.ASSISTANT) {
+      try {
+        const assistant = await this.assistantsService.getAssistantByUserId(user.userId);
+        if (assistant) {
+          return this.appointmentsService.findByDoctor(assistant.doctorId);
+        }
+      } catch (error) {
+        // If assistant profile doesn't exist, return empty array
         return [];
       }
     }
