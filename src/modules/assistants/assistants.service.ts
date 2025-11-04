@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Assistant, Doctor, User, Role, RoleType } from '../../entities';
 import { CreateAssistantDto, UpdateAssistantDto } from './dto';
 import { CreateMyAssistantProfileDto } from './dto/create-my-profile.dto';
+import { UpdateMyAssistantProfileDto } from './dto/update-my-profile.dto';
 import * as bcrypt from 'bcryptjs';
 
 @Injectable()
@@ -250,5 +251,24 @@ export class AssistantsService {
       where: { userId },
     });
     return !!assistant;
+  }
+
+  async updateMyProfile(userId: number, updateProfileDto: UpdateMyAssistantProfileDto): Promise<Assistant> {
+    // Get existing assistant profile
+    const assistant = await this.getAssistantByUserId(userId);
+
+    // Update only allowed fields (name, qualification, experience)
+    // Phone and doctorId cannot be changed
+    if (updateProfileDto.name !== undefined) {
+      assistant.name = updateProfileDto.name;
+    }
+    if (updateProfileDto.qualification !== undefined) {
+      assistant.qualification = updateProfileDto.qualification;
+    }
+    if (updateProfileDto.experience !== undefined) {
+      assistant.experience = updateProfileDto.experience;
+    }
+
+    return this.assistantRepository.save(assistant);
   }
 }
