@@ -56,6 +56,9 @@ export class PatientsService {
     // Generate unique token number
     const tokenNumber = await this.generateTokenNumber(appointment.doctorId, appointment.date);
 
+    // Use the time from the request if provided, otherwise fall back to appointment start time
+    const appointmentTime = bookAppointmentDto.time || appointment.startTime;
+    
     const tokenAppointment = this.tokenAppointmentRepository.create({
       patientName,
       patientEmail,
@@ -66,7 +69,7 @@ export class PatientsService {
       isOldPatient: isOldPatient || false,
       doctorFee: appointment.doctor.consultationFee,
       date: appointment.date,
-      time: appointment.startTime,
+      time: appointmentTime, // Use the individual calculated time from frontend
       tokenNumber,
       reasonForVisit,
       notes,

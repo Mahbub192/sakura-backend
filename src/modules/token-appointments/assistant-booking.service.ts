@@ -83,8 +83,10 @@ export class AssistantBookingService {
     // Generate unique token number
     const tokenNumber = await this.generateTokenNumber(doctorId, appointmentData.date);
 
+    // Use the time from the request (individual calculated time), fallback to appointment start time
+    const appointmentTime = createBookingDto.time || appointment.startTime;
+    
     const tokenAppointment = this.tokenAppointmentRepository.create({
-      ...appointmentData,
       patientName,
       patientEmail,
       patientPhone,
@@ -99,6 +101,7 @@ export class AssistantBookingService {
       appointmentId,
       tokenNumber,
       date: new Date(appointmentData.date),
+      time: appointmentTime, // Use the individual calculated time from frontend
       status: TokenAppointmentStatus.CONFIRMED,
     });
 

@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { TokenAppointment, Appointment, Doctor, TokenAppointmentStatus, AppointmentStatus } from '../../entities';
 import { CreateTokenAppointmentDto } from './dto/create-token-appointment.dto';
 
@@ -140,6 +140,32 @@ export class TokenAppointmentsService {
       .orderBy('tokenAppointment.date', 'ASC')
       .addOrderBy('tokenAppointment.time', 'ASC')
       .getMany();
+  }
+
+  async getBookedTimesForSlots(appointmentIds: number[]): Promise<Record<number, string[]>> {
+    if (!appointmentIds || appointmentIds.length === 0) {
+      return {};
+    }
+
+    const bookings = await this.tokenAppointmentRepository.find({
+      where: {
+        appointmentId: In(appointmentIds),
+        status: TokenAppointmentStatus.CONFIRMED,
+      },
+      select: ['appointmentId', 'time'],
+      order: { time: 'ASC' },
+    });
+
+    // Group bookings by appointmentId
+    const bookedTimesMap: Record<number, string[]> = {};
+    bookings.forEach(booking => {
+      if (!bookedTimesMap[booking.appointmentId]) {
+        bookedTimesMap[booking.appointmentId] = [];
+      }
+      bookedTimesMap[booking.appointmentId].push(booking.time);
+    });
+
+    return bookedTimesMap;
   }
 
   async findByTokenNumber(tokenNumber: string): Promise<TokenAppointment> {

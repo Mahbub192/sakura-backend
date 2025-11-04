@@ -37,6 +37,11 @@ export class BookAppointmentDto {
   @IsNumber()
   appointmentId: number;
 
+  @ApiProperty({ description: 'Appointment time in HH:MM format (24-hour)', required: false, example: '10:44' })
+  @IsOptional()
+  @IsString()
+  time?: string;
+
   @ApiProperty({ description: 'Reason for visit', required: false })
   @IsOptional()
   @IsString()
