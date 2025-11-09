@@ -28,19 +28,19 @@ Now verify these build settings:
 
 - **Name**: `doctor-appointment-api` (or your preferred name)
 - **Environment**: `Node` (you already selected this - correct!)
-- **Build Command**: `npm install && ./node_modules/.bin/nest build`
-  - **⚠️ CRITICAL**: Make sure this is set exactly as shown above
+- **Build Command**: `npm install && tsc -p tsconfig.build.json`
+  - **⚠️ RECOMMENDED**: Use TypeScript compiler directly (more reliable)
   - Go to: Settings → Build & Deploy → Build Command
   - Use `npm install` (NOT `npm install --production`) to include dev dependencies
-  - Use `./node_modules/.bin/nest build` to directly call the locally installed CLI binary
+  - `tsc` compiles TypeScript to JavaScript - same result as `nest build`, but more reliable
 - **Start Command**: `npm run start:prod`
 - **Plan**: Choose your plan (Free tier available)
 
-**Note**: If you see "nest: not found" or "could not determine executable" errors:
-1. **Use direct path**: Build command should be `npm install && ./node_modules/.bin/nest build`
-2. **Alternative**: If direct path doesn't work, use TypeScript compiler: `npm install && tsc -p tsconfig.build.json`
-3. Verify `@nestjs/cli` is in `devDependencies` (it should be)
-4. Check Render logs to confirm dev dependencies are being installed
+**Note**: 
+- **Recommended Build Command**: `npm install && tsc -p tsconfig.build.json` (uses TypeScript compiler directly)
+- This is more reliable than using NestJS CLI and doesn't require finding the `nest` binary
+- TypeScript is already in your `devDependencies`, so it will be installed
+- The output will be the same - compiled JavaScript in the `dist/` folder
 
 ## Step 3: Add PostgreSQL Database
 
@@ -132,7 +132,7 @@ If you have a frontend application, set the allowed origin. If not set, CORS wil
 
 1. Click "Save Changes" in your Web Service settings
 2. Render will automatically:
-   - Build your application (`npm install && ./node_modules/.bin/nest build`)
+   - Build your application (`npm install && tsc -p tsconfig.build.json`)
    - Start your application (`npm run start:prod`)
    - Use the `PORT` environment variable (provided by Render)
    - Listen on `0.0.0.0` (configured in `main.ts`)
@@ -251,12 +251,12 @@ Render automatically deploys when you push to your connected Git branch. You can
 
 1. **"nest: not found" or "could not determine executable" errors**: 
    - **Cause**: The `nest` command is not found in PATH, or `npx` can't locate the executable
-   - **Solution**: Use the direct path to the binary: `./node_modules/.bin/nest build`
-   - **Build Command should be**: `npm install && ./node_modules/.bin/nest build`
-   - **Alternative Solution**: Use TypeScript compiler directly: `npm install && tsc -p tsconfig.build.json`
+   - **Best Solution**: Use TypeScript compiler directly instead of NestJS CLI
+   - **Build Command should be**: `npm install && tsc -p tsconfig.build.json`
+   - **Why this works**: TypeScript compiler is more reliable and doesn't depend on NestJS CLI being found
    - Verify in Render dashboard: Settings → Build & Deploy → Build Command
    - Also ensure `npm install` is NOT using `--production` flag
-   - Check that `@nestjs/cli` is properly installed in `node_modules/.bin/`
+   - TypeScript is already in your `devDependencies`, so it will be installed
 2. **Check build logs**: View the build output in Render logs
 3. **Verify Node version**: Render uses Node.js 18+ by default (can be set in `package.json` or `render.yaml`)
 4. **Check dependencies**: Ensure all dependencies are in `package.json`

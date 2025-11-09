@@ -13,7 +13,7 @@
     "build": "nest build",
     "build:direct": "./node_modules/.bin/nest build",
     "build:tsc": "tsc -p tsconfig.build.json",
-    "build:render": "npm install && ./node_modules/.bin/nest build",
+    "build:render": "npm install && tsc -p tsconfig.build.json",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",

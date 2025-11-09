@@ -2,7 +2,7 @@ services:
   - type: web
     name: doctor-appointment-api
     env: node
-    buildCommand: npm install && ./node_modules/.bin/nest build
+    buildCommand: npm install && tsc -p tsconfig.build.json
     startCommand: npm run start:prod
     envVars:
       - key: NODE_ENV
