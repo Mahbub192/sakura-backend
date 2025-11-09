@@ -2,6 +2,7 @@ export default () => ({
   port: parseInt(process.env.PORT || '3000', 10),
   nodeEnv: process.env.NODE_ENV || 'development',
   database: {
+    url: process.env.DATABASE_URL, // For Neon, Railway, etc. (connection string)
     host: process.env.DB_HOST || 'localhost',
     port: parseInt(process.env.DB_PORT || '5433', 10),
     username: process.env.DB_USERNAME || 'postgres',

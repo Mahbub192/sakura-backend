@@ -40,18 +40,38 @@ import {
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        type: 'postgres' as const,
-        host: configService.get<string>('database.host') || 'localhost',
-        port: configService.get<number>('database.port') || 5433,
-        username: configService.get<string>('database.username') || 'postgres',
-        password: configService.get<string>('database.password') || 'password',
-        database: configService.get<string>('database.name') || 'doctor_appointment',
-        entities: [User, Role, Doctor, Assistant, Clinic, Appointment, TokenAppointment],
-        synchronize: (configService.get<string>('nodeEnv') || 'development') === 'development',
-        logging: (configService.get<string>('nodeEnv') || 'development') === 'development',
-        ssl: (configService.get<string>('nodeEnv') || 'development') === 'production' ? { rejectUnauthorized: false } : false,
-      }),
+      useFactory: (configService: ConfigService) => {
+        const databaseUrl = configService.get<string>('database.url');
+        const nodeEnv = configService.get<string>('nodeEnv') || 'development';
+        const isProduction = nodeEnv === 'production';
+        
+        // If DATABASE_URL is provided (e.g., Neon, Railway), use it directly
+        if (databaseUrl) {
+          return {
+            type: 'postgres' as const,
+            url: databaseUrl,
+            entities: [User, Role, Doctor, Assistant, Clinic, Appointment, TokenAppointment],
+            synchronize: !isProduction,
+            logging: !isProduction,
+            ssl: { rejectUnauthorized: false }, // Neon requires SSL
+          };
+        }
+        
+        // Otherwise, use individual connection parameters
+        return {
+          type: 'postgres' as const,
+          host: configService.get<string>('database.host') || 'localhost',
+          port: configService.get<number>('database.port') || 5433,
+          username: configService.get<string>('database.username') || 'postgres',
+          password: configService.get<string>('database.password') || 'password',
+          database: configService.get<string>('database.name') || 'doctor_appointment',
+          entities: [User, Role, Doctor, Assistant, Clinic, Appointment, TokenAppointment],
+          synchronize: !isProduction,
+          logging: !isProduction,
+          // Enable SSL for Neon or production environments
+          ssl: databaseUrl || isProduction ? { rejectUnauthorized: false } : false,
+        };
+      },
       inject: [ConfigService],
     }),
     AuthModule,
