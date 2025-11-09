@@ -10,7 +10,8 @@
     "npm": ">=10.0.0"
   },
   "scripts": {
-    "build": "nest build",
+    "build": "tsc -p tsconfig.build.json",
+    "build:nest": "nest build",
     "build:direct": "./node_modules/.bin/nest build",
     "build:tsc": "tsc -p tsconfig.build.json",
     "build:render": "npm install && tsc -p tsconfig.build.json",
