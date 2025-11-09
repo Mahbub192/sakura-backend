@@ -7,8 +7,19 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Enable CORS
-  app.enableCors();
+  const configService = app.get(ConfigService);
+  const nodeEnv = configService.get<string>('nodeEnv') || 'development';
+  const isProduction = nodeEnv === 'production';
+
+  // Enable CORS - Configure for production
+  if (isProduction) {
+    app.enableCors({
+      origin: process.env.CORS_ORIGIN || '*', // Set specific origins in production
+      credentials: true,
+    });
+  } else {
+    app.enableCors();
+  }
 
   // Global validation pipe
   app.useGlobalPipes(new ValidationPipe({
@@ -32,18 +43,23 @@ async function bootstrap() {
     .addTag('Token Appointments', 'Patient booking management')
     .addTag('Patients', 'Patient self-booking and profile management')
     .addTag('Public', 'Public endpoints (no authentication required)')
+    .addTag('Health', 'Health check endpoints')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
 
-  const configService = app.get(ConfigService);
-  const port = configService.get<number>('port') || 3000;
+  // Get port from environment (Railway provides PORT env var)
+  const port = configService.get<number>('port') || process.env.PORT || 3000;
   
-  await app.listen(port);
+  // Listen on all interfaces (0.0.0.0) for Railway deployment
+  await app.listen(port, '0.0.0.0');
 
-  console.log(`🚀 Application is running on: http://localhost:${port}`);
-  console.log(`📚 Swagger documentation: http://localhost:${port}/api`);
-  console.log(`🔧 Environment: ${configService.get<string>('nodeEnv')}`);
+  console.log(`🚀 Application is running on: http://0.0.0.0:${port}`);
+  console.log(`📚 Swagger documentation: http://0.0.0.0:${port}/api`);
+  console.log(`🔧 Environment: ${nodeEnv}`);
+  if (!isProduction) {
+    console.log(`📍 Local access: http://localhost:${port}`);
+  }
 }
 bootstrap();
