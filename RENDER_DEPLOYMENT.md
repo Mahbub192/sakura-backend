@@ -18,15 +18,21 @@ This guide will help you deploy the Doctor Appointment Management System to Rend
 
 ## Step 2: Configure Build Settings
 
-Render should auto-detect your settings, but verify:
+**✅ Your selection is CORRECT:**
+- **Service Type**: `Web Service` ✅
+- **Environment**: `Node` ✅
+
+These are the correct settings for a NestJS API application.
+
+Now verify these build settings:
 
 - **Name**: `doctor-appointment-api` (or your preferred name)
-- **Environment**: `Node`
+- **Environment**: `Node` (you already selected this - correct!)
 - **Build Command**: `npm install && ./node_modules/.bin/nest build`
-  - **Important**: 
-    - Use `npm install` (NOT `npm install --production`) to include dev dependencies
-    - Use `./node_modules/.bin/nest build` to directly call the locally installed CLI binary
-    - This bypasses PATH issues and ensures the CLI is found
+  - **⚠️ CRITICAL**: Make sure this is set exactly as shown above
+  - Go to: Settings → Build & Deploy → Build Command
+  - Use `npm install` (NOT `npm install --production`) to include dev dependencies
+  - Use `./node_modules/.bin/nest build` to directly call the locally installed CLI binary
 - **Start Command**: `npm run start:prod`
 - **Plan**: Choose your plan (Free tier available)
 
@@ -48,9 +54,27 @@ Render should auto-detect your settings, but verify:
 3. Click "Create Database"
 4. Render will automatically provide a `DATABASE_URL` connection string
 
-## Step 4: Configure Environment Variables
+## Step 4: Set Node.js Version
 
-In your Web Service settings, go to "Environment" tab and add the following:
+In your Web Service settings, go to "Environment" tab and add:
+
+#### NODE_VERSION (Recommended)
+```
+NODE_VERSION=20
+```
+or for the latest LTS:
+```
+NODE_VERSION=22
+```
+
+**Note**: 
+- NestJS 11 requires Node.js 20 or higher
+- Render's default is Node.js 22, but it's good to set it explicitly
+- You can also use specific versions like `20.18.0` or `22.16.0`
+
+## Step 5: Configure Other Environment Variables
+
+In your Web Service settings, go to "Environment" tab and add the following (in addition to `NODE_VERSION`):
 
 ### Required Environment Variables
 
@@ -97,24 +121,24 @@ CORS_ORIGIN=https://your-frontend-domain.com
 ```
 If you have a frontend application, set the allowed origin. If not set, CORS will allow all origins (`*`) in production.
 
-## Step 5: Link Database to Web Service
+## Step 6: Link Database to Web Service
 
 1. In your Web Service settings, go to "Environment" tab
 2. Under "Environment Variables", you should see an option to "Link Database"
 3. Select your PostgreSQL database
 4. Render will automatically add the `DATABASE_URL` variable
 
-## Step 6: Deploy
+## Step 7: Deploy
 
 1. Click "Save Changes" in your Web Service settings
 2. Render will automatically:
-   - Build your application (`npm install && npm run build`)
+   - Build your application (`npm install && ./node_modules/.bin/nest build`)
    - Start your application (`npm run start:prod`)
    - Use the `PORT` environment variable (provided by Render)
    - Listen on `0.0.0.0` (configured in `main.ts`)
    - Connect to PostgreSQL using `DATABASE_URL`
 
-## Step 7: Verify Deployment
+## Step 8: Verify Deployment
 
 Once deployed, Render will provide you with a public URL (e.g., `https://doctor-appointment-api.onrender.com`).
 
@@ -147,7 +171,7 @@ https://your-app.onrender.com/api
 https://your-app.onrender.com/
 ```
 
-## Step 8: Database Setup
+## Step 9: Database Setup
 
 ### Option 1: Use TypeORM Synchronize (Initial Setup)
 
@@ -180,7 +204,7 @@ To seed initial data:
 2. Click "Shell" tab
 3. Run: `npm run seed`
 
-## Step 9: Custom Domain (Optional)
+## Step 10: Custom Domain (Optional)
 
 1. In your Web Service settings, go to "Settings" tab
 2. Scroll to "Custom Domains"
@@ -256,6 +280,7 @@ Render's free tier has some limitations:
 
 | Variable | Required | Description | Default | Render Auto-Set |
 |----------|----------|-------------|---------|----------------|
+| `NODE_VERSION` | Recommended | Node.js version (20 or 22) | `22` | No |
 | `NODE_ENV` | Yes | Environment mode | `development` | No |
 | `PORT` | No | Server port | `3000` | **Yes** (10000) |
 | `DATABASE_URL` | Yes* | PostgreSQL connection string | - | **Yes** (if linked) |
