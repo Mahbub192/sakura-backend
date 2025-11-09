@@ -22,17 +22,19 @@ Render should auto-detect your settings, but verify:
 
 - **Name**: `doctor-appointment-api` (or your preferred name)
 - **Environment**: `Node`
-- **Build Command**: `npm install && npx nest build`
+- **Build Command**: `npm install && ./node_modules/.bin/nest build`
   - **Important**: 
     - Use `npm install` (NOT `npm install --production`) to include dev dependencies
-    - Use `npx nest build` instead of `nest build` to ensure the locally installed CLI is used
+    - Use `./node_modules/.bin/nest build` to directly call the locally installed CLI binary
+    - This bypasses PATH issues and ensures the CLI is found
 - **Start Command**: `npm run start:prod`
 - **Plan**: Choose your plan (Free tier available)
 
-**Note**: If you see "nest: not found" error:
-1. Ensure build command is `npm install && npx nest build` (using `npx` ensures local CLI is found)
-2. Verify `@nestjs/cli` is in `devDependencies` (it should be)
-3. Check Render logs to confirm dev dependencies are being installed
+**Note**: If you see "nest: not found" or "could not determine executable" errors:
+1. **Use direct path**: Build command should be `npm install && ./node_modules/.bin/nest build`
+2. **Alternative**: If direct path doesn't work, use TypeScript compiler: `npm install && tsc -p tsconfig.build.json`
+3. Verify `@nestjs/cli` is in `devDependencies` (it should be)
+4. Check Render logs to confirm dev dependencies are being installed
 
 ## Step 3: Add PostgreSQL Database
 
@@ -223,13 +225,14 @@ Render automatically deploys when you push to your connected Git branch. You can
 
 ### Build Failures
 
-1. **"nest: not found" error**: 
-   - **Cause**: The `nest` command is not found in PATH, even though `@nestjs/cli` is installed
-   - **Solution**: Use `npx nest build` instead of `nest build` or `npm run build`
-   - **Build Command should be**: `npm install && npx nest build`
-   - **Alternative**: Use `./node_modules/.bin/nest build` if `npx` doesn't work
+1. **"nest: not found" or "could not determine executable" errors**: 
+   - **Cause**: The `nest` command is not found in PATH, or `npx` can't locate the executable
+   - **Solution**: Use the direct path to the binary: `./node_modules/.bin/nest build`
+   - **Build Command should be**: `npm install && ./node_modules/.bin/nest build`
+   - **Alternative Solution**: Use TypeScript compiler directly: `npm install && tsc -p tsconfig.build.json`
    - Verify in Render dashboard: Settings → Build & Deploy → Build Command
    - Also ensure `npm install` is NOT using `--production` flag
+   - Check that `@nestjs/cli` is properly installed in `node_modules/.bin/`
 2. **Check build logs**: View the build output in Render logs
 3. **Verify Node version**: Render uses Node.js 18+ by default (can be set in `package.json` or `render.yaml`)
 4. **Check dependencies**: Ensure all dependencies are in `package.json`

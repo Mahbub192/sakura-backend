@@ -6,8 +6,10 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "build": "npx nest build",
-    "build:render": "npm install && npx nest build",
+    "build": "nest build",
+    "build:direct": "./node_modules/.bin/nest build",
+    "build:tsc": "tsc -p tsconfig.build.json",
+    "build:render": "npm install && ./node_modules/.bin/nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
