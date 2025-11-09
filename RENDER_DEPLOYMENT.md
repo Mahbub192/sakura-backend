@@ -23,8 +23,11 @@ Render should auto-detect your settings, but verify:
 - **Name**: `doctor-appointment-api` (or your preferred name)
 - **Environment**: `Node`
 - **Build Command**: `npm install && npm run build`
+  - **Important**: Make sure this is `npm install` (NOT `npm install --production`) to include dev dependencies needed for building
 - **Start Command**: `npm run start:prod`
 - **Plan**: Choose your plan (Free tier available)
+
+**Note**: If you see "nest: not found" error, ensure your build command is `npm install && npm run build` (without `--production` flag). The `@nestjs/cli` is required for building and is in devDependencies.
 
 ## Step 3: Add PostgreSQL Database
 
@@ -215,10 +218,14 @@ Render automatically deploys when you push to your connected Git branch. You can
 
 ### Build Failures
 
-1. **Check build logs**: View the build output in Render logs
-2. **Verify Node version**: Render uses Node.js 18+ by default (can be set in `package.json` or `render.yaml`)
-3. **Check dependencies**: Ensure all dependencies are in `package.json`
-4. **Memory issues**: Free tier has memory limits, consider upgrading if needed
+1. **"nest: not found" error**: 
+   - **Cause**: Render is installing with `--production` flag, skipping devDependencies
+   - **Solution**: Ensure build command is `npm install && npm run build` (NOT `npm install --production`)
+   - Verify in Render dashboard: Settings → Build & Deploy → Build Command
+2. **Check build logs**: View the build output in Render logs
+3. **Verify Node version**: Render uses Node.js 18+ by default (can be set in `package.json` or `render.yaml`)
+4. **Check dependencies**: Ensure all dependencies are in `package.json`
+5. **Memory issues**: Free tier has memory limits, consider upgrading if needed
 
 ### CORS Issues
 
