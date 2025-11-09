@@ -22,12 +22,17 @@ Render should auto-detect your settings, but verify:
 
 - **Name**: `doctor-appointment-api` (or your preferred name)
 - **Environment**: `Node`
-- **Build Command**: `npm install && npm run build`
-  - **Important**: Make sure this is `npm install` (NOT `npm install --production`) to include dev dependencies needed for building
+- **Build Command**: `npm install && npx nest build`
+  - **Important**: 
+    - Use `npm install` (NOT `npm install --production`) to include dev dependencies
+    - Use `npx nest build` instead of `nest build` to ensure the locally installed CLI is used
 - **Start Command**: `npm run start:prod`
 - **Plan**: Choose your plan (Free tier available)
 
-**Note**: If you see "nest: not found" error, ensure your build command is `npm install && npm run build` (without `--production` flag). The `@nestjs/cli` is required for building and is in devDependencies.
+**Note**: If you see "nest: not found" error:
+1. Ensure build command is `npm install && npx nest build` (using `npx` ensures local CLI is found)
+2. Verify `@nestjs/cli` is in `devDependencies` (it should be)
+3. Check Render logs to confirm dev dependencies are being installed
 
 ## Step 3: Add PostgreSQL Database
 
@@ -219,9 +224,12 @@ Render automatically deploys when you push to your connected Git branch. You can
 ### Build Failures
 
 1. **"nest: not found" error**: 
-   - **Cause**: Render is installing with `--production` flag, skipping devDependencies
-   - **Solution**: Ensure build command is `npm install && npm run build` (NOT `npm install --production`)
+   - **Cause**: The `nest` command is not found in PATH, even though `@nestjs/cli` is installed
+   - **Solution**: Use `npx nest build` instead of `nest build` or `npm run build`
+   - **Build Command should be**: `npm install && npx nest build`
+   - **Alternative**: Use `./node_modules/.bin/nest build` if `npx` doesn't work
    - Verify in Render dashboard: Settings → Build & Deploy → Build Command
+   - Also ensure `npm install` is NOT using `--production` flag
 2. **Check build logs**: View the build output in Render logs
 3. **Verify Node version**: Render uses Node.js 18+ by default (can be set in `package.json` or `render.yaml`)
 4. **Check dependencies**: Ensure all dependencies are in `package.json`
