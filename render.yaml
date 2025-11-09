@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: doctor-appointment-api
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: npm run start:prod
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+        sync: false
+      - key: JWT_EXPIRES_IN
+        value: 24h
+      - key: PORT
+        value: 10000
+    healthCheckPath: /health
+
+databases:
+  - name: doctor-appointment-db
+    databaseName: doctor_appointment
+    user: doctor_appointment_user
+
