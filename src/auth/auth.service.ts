@@ -66,9 +66,9 @@ export class AuthService {
   }
 
   async login(loginDto: LoginDto) {
-    const { email, password } = loginDto;
+    const { phone, password } = loginDto;
 
-    const user = await this.validateUser(email, password);
+    const user = await this.validateUser(phone, password);
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -91,9 +91,9 @@ export class AuthService {
     };
   }
 
-  async validateUser(email: string, password: string): Promise<User | null> {
+  async validateUser(phone: string, password: string): Promise<User | null> {
     const user = await this.userRepository.findOne({ 
-      where: { email },
+      where: { phone },
       relations: ['role'],
     });
 
