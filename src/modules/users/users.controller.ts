@@ -115,6 +115,18 @@ export class UsersController {
   updateMyProfile(@Body() updateProfileDto: CreateMyUserProfileDto, @CurrentUser() user: any) {
     return this.usersService.updateMyProfile(user.userId, updateProfileDto);
   }
+
+  @Patch('change-password')
+  @ApiOperation({ summary: 'Change my password (any authenticated user)' })
+  @ApiResponse({ status: 200, description: 'Password changed successfully' })
+  @ApiResponse({ status: 401, description: 'Invalid current password' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  async changePassword(
+    @Body() body: { currentPassword: string; newPassword: string },
+    @CurrentUser() user: any
+  ) {
+    return this.usersService.changeMyPassword(user.userId, body.currentPassword, body.newPassword);
+  }
 }
 
 
