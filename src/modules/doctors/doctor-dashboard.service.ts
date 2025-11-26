@@ -275,4 +275,120 @@ export class DoctorDashboardService {
     Object.assign(doctor, updateData);
     return this.doctorRepository.save(doctor);
   }
+
+  // Notification Settings
+  async getNotificationSettings(userId: number): Promise<any> {
+    const doctor = await this.getDoctorByUserId(userId);
+    // Return default settings if not set, or stored settings from contactInfo or a new settings field
+    return (doctor.contactInfo as any)?.notificationSettings || {
+      events: {
+        newAppointmentBooking: true,
+        appointmentReminder: true,
+        appointmentCancellation: true,
+        newPatientMessage: false,
+      },
+      deliveryMethods: {
+        email: true,
+        sms: false,
+        inApp: true,
+      },
+      quietHours: {
+        enabled: false,
+        startTime: '22:00',
+        endTime: '08:00',
+      },
+    };
+  }
+
+  async updateNotificationSettings(userId: number, settings: any): Promise<Doctor> {
+    const doctor = await this.getDoctorByUserId(userId);
+    const contactInfo = (doctor.contactInfo as any) || {};
+    contactInfo.notificationSettings = settings;
+    doctor.contactInfo = contactInfo;
+    return this.doctorRepository.save(doctor);
+  }
+
+  // Clinic Info
+  async getClinicInfo(userId: number): Promise<any> {
+    const doctor = await this.getDoctorByUserId(userId);
+    // Return clinic info from contactInfo or default
+    return (doctor.contactInfo as any)?.clinicInfo || {
+      logo: '',
+      name: doctor.name || '',
+      address: '',
+      phone: doctor.user?.phone || '',
+      email: doctor.user?.email || '',
+      description: doctor.bio || '',
+      operatingHours: {
+        monday: { start: '09:00', end: '17:00', closed: false },
+        tuesday: { start: '09:00', end: '17:00', closed: false },
+        wednesday: { start: '09:00', end: '17:00', closed: false },
+        thursday: { start: '09:00', end: '17:00', closed: false },
+        friday: { start: '09:00', end: '17:00', closed: false },
+        saturday: { start: '09:00', end: '17:00', closed: true },
+        sunday: { start: '09:00', end: '17:00', closed: true },
+      },
+    };
+  }
+
+  async updateClinicInfo(userId: number, clinicInfo: any): Promise<Doctor> {
+    const doctor = await this.getDoctorByUserId(userId);
+    const contactInfo = (doctor.contactInfo as any) || {};
+    contactInfo.clinicInfo = clinicInfo;
+    doctor.contactInfo = contactInfo;
+    return this.doctorRepository.save(doctor);
+  }
+
+  // Billing Stats
+  async getBillingStats(userId: number): Promise<any> {
+    const doctor = await this.getDoctorByUserId(userId);
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+
+    // Get all completed appointments
+    const allCompleted = await this.tokenAppointmentRepository.find({
+      where: {
+        doctorId: doctor.id,
+        status: TokenAppointmentStatus.COMPLETED,
+      },
+    });
+
+    // Get this month's completed appointments
+    const thisMonthCompleted = await this.tokenAppointmentRepository.find({
+      where: {
+        doctorId: doctor.id,
+        status: TokenAppointmentStatus.COMPLETED,
+        date: Between(startOfMonth, endOfMonth),
+      },
+    });
+
+    // Get last month's completed appointments
+    const lastMonthCompleted = await this.tokenAppointmentRepository.find({
+      where: {
+        doctorId: doctor.id,
+        status: TokenAppointmentStatus.COMPLETED,
+        date: Between(startOfLastMonth, endOfLastMonth),
+      },
+    });
+
+    // Calculate totals
+    const totalIncome = allCompleted.reduce((sum, apt) => sum + Number(apt.doctorFee), 0);
+    const thisMonth = thisMonthCompleted.reduce((sum, apt) => sum + Number(apt.doctorFee), 0);
+    const lastMonth = lastMonthCompleted.reduce((sum, apt) => sum + Number(apt.doctorFee), 0);
+    const totalAppointments = allCompleted.length;
+    const averagePerAppointment = totalAppointments > 0 ? totalIncome / totalAppointments : 0;
+    const growth = lastMonth > 0 ? ((thisMonth - lastMonth) / lastMonth) * 100 : 0;
+
+    return {
+      totalIncome: Number(totalIncome.toFixed(2)),
+      thisMonth: Number(thisMonth.toFixed(2)),
+      lastMonth: Number(lastMonth.toFixed(2)),
+      totalAppointments,
+      averagePerAppointment: Number(averagePerAppointment.toFixed(2)),
+      growth: Number(growth.toFixed(2)),
+    };
+  }
 }

@@ -42,6 +42,27 @@ export class UsersController {
     return this.usersService.create(createUserDto);
   }
 
+  // Self-service profile endpoints (must be before parameterized routes)
+  @Patch('my-profile')
+  @ApiOperation({ summary: 'Update my user profile (any authenticated user)' })
+  @ApiResponse({ status: 200, description: 'User profile updated' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  updateMyProfile(@Body() updateProfileDto: CreateMyUserProfileDto, @CurrentUser() user: any) {
+    return this.usersService.updateMyProfile(user.userId, updateProfileDto);
+  }
+
+  @Patch('change-password')
+  @ApiOperation({ summary: 'Change my password (any authenticated user)' })
+  @ApiResponse({ status: 200, description: 'Password changed successfully' })
+  @ApiResponse({ status: 401, description: 'Invalid current password' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  async changePassword(
+    @Body() body: { currentPassword: string; newPassword: string },
+    @CurrentUser() user: any
+  ) {
+    return this.usersService.changeMyPassword(user.userId, body.currentPassword, body.newPassword);
+  }
+
   @Get()
   @UseGuards(RolesGuard)
   @Roles(RoleType.ADMIN)
@@ -105,27 +126,6 @@ export class UsersController {
   @ApiParam({ name: 'id', description: 'User ID' })
   remove(@Param('id') id: string) {
     return this.usersService.remove(+id);
-  }
-
-  // Self-service profile endpoints
-  @Patch('my-profile')
-  @ApiOperation({ summary: 'Update my user profile (any authenticated user)' })
-  @ApiResponse({ status: 200, description: 'User profile updated' })
-  @ApiResponse({ status: 404, description: 'User not found' })
-  updateMyProfile(@Body() updateProfileDto: CreateMyUserProfileDto, @CurrentUser() user: any) {
-    return this.usersService.updateMyProfile(user.userId, updateProfileDto);
-  }
-
-  @Patch('change-password')
-  @ApiOperation({ summary: 'Change my password (any authenticated user)' })
-  @ApiResponse({ status: 200, description: 'Password changed successfully' })
-  @ApiResponse({ status: 401, description: 'Invalid current password' })
-  @ApiResponse({ status: 404, description: 'User not found' })
-  async changePassword(
-    @Body() body: { currentPassword: string; newPassword: string },
-    @CurrentUser() user: any
-  ) {
-    return this.usersService.changeMyPassword(user.userId, body.currentPassword, body.newPassword);
   }
 }
 

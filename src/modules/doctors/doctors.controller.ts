@@ -24,6 +24,8 @@ import { CreateDoctorDto, UpdateDoctorDto } from './dto';
 import { CreateAppointmentScheduleDto } from './dto/create-appointment-schedule.dto';
 import { UpdateDoctorProfileDto } from './dto/update-doctor-profile.dto';
 import { CreateMyDoctorProfileDto } from './dto/create-my-profile.dto';
+import { NotificationSettingsDto } from './dto/notification-settings.dto';
+import { ClinicInfoDto } from './dto/clinic-info.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -248,6 +250,54 @@ export class DoctorsController {
   @ApiResponse({ status: 200, description: 'Doctor profile updated successfully' })
   updateProfile(@Body() updateProfileDto: UpdateDoctorProfileDto, @CurrentUser() user: any) {
     return this.dashboardService.updateDoctorProfile(user.userId, updateProfileDto);
+  }
+
+  // Notification Settings
+  @Get('notification-settings')
+  @UseGuards(RolesGuard)
+  @Roles(RoleType.DOCTOR)
+  @ApiOperation({ summary: 'Get doctor notification settings' })
+  @ApiResponse({ status: 200, description: 'Notification settings retrieved' })
+  getNotificationSettings(@CurrentUser() user: any) {
+    return this.dashboardService.getNotificationSettings(user.userId);
+  }
+
+  @Patch('notification-settings')
+  @UseGuards(RolesGuard)
+  @Roles(RoleType.DOCTOR)
+  @ApiOperation({ summary: 'Update doctor notification settings' })
+  @ApiResponse({ status: 200, description: 'Notification settings updated successfully' })
+  updateNotificationSettings(@Body() settingsDto: NotificationSettingsDto, @CurrentUser() user: any) {
+    return this.dashboardService.updateNotificationSettings(user.userId, settingsDto);
+  }
+
+  // Clinic Info
+  @Get('clinic-info')
+  @UseGuards(RolesGuard)
+  @Roles(RoleType.DOCTOR)
+  @ApiOperation({ summary: 'Get doctor clinic information' })
+  @ApiResponse({ status: 200, description: 'Clinic information retrieved' })
+  getClinicInfo(@CurrentUser() user: any) {
+    return this.dashboardService.getClinicInfo(user.userId);
+  }
+
+  @Patch('clinic-info')
+  @UseGuards(RolesGuard)
+  @Roles(RoleType.DOCTOR)
+  @ApiOperation({ summary: 'Update doctor clinic information' })
+  @ApiResponse({ status: 200, description: 'Clinic information updated successfully' })
+  updateClinicInfo(@Body() clinicInfoDto: ClinicInfoDto, @CurrentUser() user: any) {
+    return this.dashboardService.updateClinicInfo(user.userId, clinicInfoDto);
+  }
+
+  // Billing Stats
+  @Get('billing-stats')
+  @UseGuards(RolesGuard)
+  @Roles(RoleType.DOCTOR)
+  @ApiOperation({ summary: 'Get doctor billing statistics' })
+  @ApiResponse({ status: 200, description: 'Billing statistics retrieved' })
+  getBillingStats(@CurrentUser() user: any) {
+    return this.dashboardService.getBillingStats(user.userId);
   }
 }
 
