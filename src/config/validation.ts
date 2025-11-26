@@ -14,7 +14,7 @@ export const validationSchema = Joi.object({
     then: Joi.optional(),
     otherwise: Joi.required(),
   }),
-  DB_PORT: Joi.number().default(5433),
+  DB_PORT: Joi.number().default(5432),
   DB_USERNAME: Joi.string().when('DATABASE_URL', {
     is: Joi.exist(),
     then: Joi.optional(),

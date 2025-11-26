@@ -24,7 +24,7 @@ cp env.example .env
 
 # Edit .env file with your database credentials
 DB_HOST=localhost
-DB_PORT=5433
+DB_PORT=5432
 DB_USERNAME=appointment_user
 DB_PASSWORD=your_password
 DB_NAME=doctor_appointment
@@ -141,7 +141,7 @@ npm run format        # Format code with Prettier
 
 ### Environment Variables
 - `DB_HOST`: Database host (default: localhost)
-- `DB_PORT`: Database port (default: 5433)
+- `DB_PORT`: Database port (default: 5432)
 - `DB_USERNAME`: Database username
 - `DB_PASSWORD`: Database password
 - `DB_NAME`: Database name

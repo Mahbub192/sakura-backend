@@ -18,7 +18,7 @@ The application uses a modern, type-safe configuration system with:
 ```bash
 # Database Configuration
 DB_HOST=localhost
-DB_PORT=5433
+DB_PORT=5432
 DB_USERNAME=postgres
 DB_PASSWORD=password
 DB_NAME=doctor_appointment
@@ -39,7 +39,7 @@ Template file for creating your own `.env` file. Copy this file to `.env` and up
 
 ### Database Configuration
 - `DB_HOST`: PostgreSQL host (default: localhost)
-- `DB_PORT`: PostgreSQL port (default: 5433)
+- `DB_PORT`: PostgreSQL port (default: 5432)
 - `DB_USERNAME`: Database username (default: postgres)
 - `DB_PASSWORD`: Database password (default: password)
 - `DB_NAME`: Database name (default: doctor_appointment)
@@ -65,7 +65,7 @@ export const validationSchema = Joi.object({
   
   // Database validation
   DB_HOST: Joi.string().required(),
-  DB_PORT: Joi.number().default(5433),
+  DB_PORT: Joi.number().default(5432),
   DB_USERNAME: Joi.string().required(),
   DB_PASSWORD: Joi.string().required(),
   DB_NAME: Joi.string().required(),
@@ -87,7 +87,7 @@ export default () => ({
   nodeEnv: process.env.NODE_ENV || 'development',
   database: {
     host: process.env.DB_HOST || 'localhost',
-    port: parseInt(process.env.DB_PORT || '5433', 10),
+    port: parseInt(process.env.DB_PORT || '5432', 10),
     username: process.env.DB_USERNAME || 'postgres',
     password: process.env.DB_PASSWORD || 'password',
     name: process.env.DB_NAME || 'doctor_appointment',
@@ -163,7 +163,7 @@ This script will:
 NODE_ENV=production
 PORT=3000
 DB_HOST=your-production-db.com
-DB_PORT=5433
+DB_PORT=5432
 DB_USERNAME=app_user
 DB_PASSWORD=super-secure-password
 DB_NAME=doctor_appointment_prod

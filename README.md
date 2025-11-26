@@ -87,7 +87,7 @@ A comprehensive doctor appointment management system built with NestJS, TypeORM,
    - **Required Environment Variables**:
    ```env
    DB_HOST=localhost
-   DB_PORT=5433
+   DB_PORT=5432
    DB_USERNAME=postgres
    DB_PASSWORD=your_password
    DB_NAME=doctor_appointment
@@ -220,7 +220,7 @@ npm run start:prod
 ```env
 NODE_ENV=production
 DB_HOST=your-production-db-host
-DB_PORT=5433
+DB_PORT=5432
 DB_USERNAME=your-production-db-user
 DB_PASSWORD=your-production-db-password
 DB_NAME=doctor_appointment

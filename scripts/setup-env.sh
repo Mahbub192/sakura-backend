@@ -10,9 +10,9 @@ if [ ! -f .env ]; then
     cat > .env << 'EOF'
 # Database Configuration
 DB_HOST=localhost
-DB_PORT=5433
+DB_PORT=5432
 DB_USERNAME=postgres
-DB_PASSWORD=password
+DB_PASSWORD=12345
 DB_NAME=doctor_appointment
 
 # JWT Configuration
@@ -30,7 +30,7 @@ fi
 
 # Check if PostgreSQL is running
 echo "🔍 Checking PostgreSQL connection..."
-if pg_isready -h localhost -p 5433 > /dev/null 2>&1; then
+if pg_isready -h localhost -p 5432 > /dev/null 2>&1; then
     echo "✅ PostgreSQL is running"
 else
     echo "❌ PostgreSQL is not running. Please start PostgreSQL service."

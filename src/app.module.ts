@@ -1,30 +1,30 @@
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import configuration from './config/configuration';
-import { validationSchema } from './config/validation';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
-import { UsersModule } from './modules/users/users.module';
-import { DoctorsModule } from './modules/doctors/doctors.module';
-import { AssistantsModule } from './modules/assistants/assistants.module';
-import { AppointmentsModule } from './modules/appointments/appointments.module';
-import { TokenAppointmentsModule } from './modules/token-appointments/token-appointments.module';
-import { ClinicsModule } from './modules/clinics/clinics.module';
-import { PatientsModule } from './modules/patients/patients.module';
-import { NotificationsModule } from './modules/notifications/notifications.module';
-import { PublicModule } from './modules/public/public.module';
+import configuration from './config/configuration';
+import { validationSchema } from './config/validation';
 import { SeedModule } from './database/seeds/seed.module';
-import { 
-  User, 
-  Role, 
-  Doctor, 
-  Assistant, 
-  Clinic, 
-  Appointment, 
-  TokenAppointment 
+import {
+    Appointment,
+    Assistant,
+    Clinic,
+    Doctor,
+    Role,
+    TokenAppointment,
+    User
 } from './entities';
+import { AppointmentsModule } from './modules/appointments/appointments.module';
+import { AssistantsModule } from './modules/assistants/assistants.module';
+import { ClinicsModule } from './modules/clinics/clinics.module';
+import { DoctorsModule } from './modules/doctors/doctors.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
+import { PatientsModule } from './modules/patients/patients.module';
+import { PublicModule } from './modules/public/public.module';
+import { TokenAppointmentsModule } from './modules/token-appointments/token-appointments.module';
+import { UsersModule } from './modules/users/users.module';
 
 @Module({
   imports: [
@@ -61,7 +61,7 @@ import {
         return {
           type: 'postgres' as const,
           host: configService.get<string>('database.host') || 'localhost',
-          port: configService.get<number>('database.port') || 5433,
+          port: configService.get<number>('database.port') || 5432,
           username: configService.get<string>('database.username') || 'postgres',
           password: configService.get<string>('database.password') || 'password',
           database: configService.get<string>('database.name') || 'doctor_appointment',
