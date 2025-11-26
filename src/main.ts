@@ -31,6 +31,7 @@ async function bootstrap() {
     .addTag('Appointments', 'Appointment slot management')
     .addTag('Token Appointments', 'Patient booking management')
     .addTag('Patients', 'Patient self-booking and profile management')
+    .addTag('Messages', 'Messaging and communication')
     .addTag('Public', 'Public endpoints (no authentication required)')
     .build();
 

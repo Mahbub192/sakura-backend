@@ -12,6 +12,8 @@ import {
     Assistant,
     Clinic,
     Doctor,
+    Message,
+    MessageThread,
     Role,
     TokenAppointment,
     User
@@ -20,6 +22,7 @@ import { AppointmentsModule } from './modules/appointments/appointments.module';
 import { AssistantsModule } from './modules/assistants/assistants.module';
 import { ClinicsModule } from './modules/clinics/clinics.module';
 import { DoctorsModule } from './modules/doctors/doctors.module';
+import { MessagesModule } from './modules/messages/messages.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { PatientsModule } from './modules/patients/patients.module';
 import { PublicModule } from './modules/public/public.module';
@@ -50,7 +53,7 @@ import { UsersModule } from './modules/users/users.module';
           return {
             type: 'postgres' as const,
             url: databaseUrl,
-            entities: [User, Role, Doctor, Assistant, Clinic, Appointment, TokenAppointment],
+            entities: [User, Role, Doctor, Assistant, Clinic, Appointment, TokenAppointment, Message, MessageThread],
             synchronize: !isProduction,
             logging: !isProduction,
             ssl: { rejectUnauthorized: false }, // Neon requires SSL
@@ -84,6 +87,7 @@ import { UsersModule } from './modules/users/users.module';
     PatientsModule,
     NotificationsModule,
     PublicModule,
+    MessagesModule,
     SeedModule,
   ],
   controllers: [AppController],
