@@ -14,10 +14,10 @@ import { ConfigService } from '@nestjs/config';
 import { MessagesService } from './messages.service';
 import { CreateMessageDto } from './dto/create-message.dto';
 
-interface AuthenticatedSocket extends Socket {
+type AuthenticatedSocket = Socket & {
   userId?: number;
   userRole?: string;
-}
+};
 
 @WebSocketGateway({
   cors: {
