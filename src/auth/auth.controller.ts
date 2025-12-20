@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards, Request, Get } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Request, Get, UnauthorizedException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { RegisterDto, LoginDto } from './dto';
@@ -33,8 +33,16 @@ export class AuthController {
   @ApiOperation({ summary: 'Get current user profile' })
   @ApiResponse({ status: 200, description: 'User profile retrieved' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  getProfile(@CurrentUser() user: any) {
-    return user;
+  async getProfile(@CurrentUser() user: any) {
+    // Fetch full user data from database using phone number
+    const fullUser = await this.authService.findUserByPhone(user.userId);
+    if (!fullUser) {
+      throw new UnauthorizedException('User not found');
+    }
+    
+    // Return user data without password
+    const { password, ...userWithoutPassword } = fullUser;
+    return userWithoutPassword;
   }
 }
 

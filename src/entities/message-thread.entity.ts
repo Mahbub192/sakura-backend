@@ -14,7 +14,7 @@ export class MessageThread {
   threadId: string;
 
   @ApiProperty({ description: 'Participant 1 user phone number' })
-  @Column({ name: 'participant1_phone', type: 'varchar' })
+  @Column({ name: 'participant1_phone', type: 'varchar', nullable: true })
   participant1Phone: string;
 
   @ApiProperty({ type: () => User, description: 'Participant 1 user' })
@@ -23,7 +23,7 @@ export class MessageThread {
   participant1: User;
 
   @ApiProperty({ description: 'Participant 2 user phone number' })
-  @Column({ name: 'participant2_phone', type: 'varchar' })
+  @Column({ name: 'participant2_phone', type: 'varchar', nullable: true })
   participant2Phone: string;
 
   @ApiProperty({ type: () => User, description: 'Participant 2 user' })

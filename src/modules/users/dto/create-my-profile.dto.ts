@@ -1,4 +1,4 @@
-import { IsString, IsOptional } from 'class-validator';
+import { IsString, IsOptional, IsEmail } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateMyUserProfileDto {
@@ -10,9 +10,11 @@ export class CreateMyUserProfileDto {
   @IsString()
   lastName: string;
 
-  @ApiProperty({ description: 'User phone number', required: false })
+  @ApiProperty({ description: 'User email address', required: false })
   @IsOptional()
-  @IsString()
-  phone?: string;
+  @IsEmail()
+  email?: string;
+
+  // Phone number is NOT included - it's the primary key and cannot be changed
 }
 

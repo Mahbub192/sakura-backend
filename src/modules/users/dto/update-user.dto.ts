@@ -1,7 +1,8 @@
-import { PartialType } from '@nestjs/swagger';
+import { PartialType, OmitType } from '@nestjs/swagger';
 import { CreateUserDto } from './create-user.dto';
 
-export class UpdateUserDto extends PartialType(CreateUserDto) {}
+// Exclude phone from updates since it's the primary key
+export class UpdateUserDto extends PartialType(OmitType(CreateUserDto, ['phone'] as const)) {}
 
 
 

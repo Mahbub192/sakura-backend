@@ -59,6 +59,9 @@ export class AuthService {
       role: userRole.name 
     };
     
+    // Return user data without password
+    const { password: _, ...userWithoutPassword } = savedUser;
+    
     return {
       access_token: this.jwtService.sign(payload),
       user: {
@@ -67,6 +70,10 @@ export class AuthService {
         firstName: savedUser.firstName,
         lastName: savedUser.lastName,
         role: userRole.name,
+        isActive: savedUser.isActive,
+        isEmailVerified: savedUser.isEmailVerified,
+        createdAt: savedUser.createdAt,
+        updatedAt: savedUser.updatedAt,
       },
     };
   }
@@ -85,6 +92,9 @@ export class AuthService {
       role: user.role.name 
     };
 
+    // Return user data without password
+    const { password: _, ...userWithoutPassword } = user;
+    
     return {
       access_token: this.jwtService.sign(payload),
       user: {
@@ -93,6 +103,10 @@ export class AuthService {
         firstName: user.firstName,
         lastName: user.lastName,
         role: user.role.name,
+        isActive: user.isActive,
+        isEmailVerified: user.isEmailVerified,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
       },
     };
   }

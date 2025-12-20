@@ -26,7 +26,7 @@ export class Message {
   threadId: string;
 
   @ApiProperty({ description: 'Sender user phone number' })
-  @Column({ name: 'sender_phone', type: 'varchar' })
+  @Column({ name: 'sender_phone', type: 'varchar', nullable: true })
   senderPhone: string;
 
   @ApiProperty({ type: () => User, description: 'Sender user' })
@@ -35,7 +35,7 @@ export class Message {
   sender: User;
 
   @ApiProperty({ description: 'Recipient user phone number' })
-  @Column({ name: 'recipient_phone', type: 'varchar' })
+  @Column({ name: 'recipient_phone', type: 'varchar', nullable: true })
   recipientPhone: string;
 
   @ApiProperty({ type: () => User, description: 'Recipient user' })

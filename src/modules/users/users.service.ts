@@ -89,6 +89,12 @@ export class UsersService {
   async update(phone: string, updateUserDto: UpdateUserDto): Promise<User> {
     const user = await this.findOne(phone);
 
+    // Phone number cannot be updated (it's the primary key)
+    // UpdateUserDto already excludes phone, but we ensure it's not in the DTO
+    if ('phone' in updateUserDto) {
+      delete (updateUserDto as any).phone;
+    }
+
     if (updateUserDto.email && updateUserDto.email !== user.email) {
       const existingUser = await this.userRepository.findOne({
         where: { email: updateUserDto.email },
@@ -140,7 +146,24 @@ export class UsersService {
   async updateMyProfile(userPhone: string, updateProfileDto: CreateMyUserProfileDto): Promise<User> {
     const user = await this.findOne(userPhone);
     
-    Object.assign(user, updateProfileDto);
+    // Update only allowed fields (phone cannot be changed as it's the primary key)
+    if (updateProfileDto.firstName !== undefined) {
+      user.firstName = updateProfileDto.firstName;
+    }
+    if (updateProfileDto.lastName !== undefined) {
+      user.lastName = updateProfileDto.lastName;
+    }
+    if (updateProfileDto.email !== undefined && updateProfileDto.email !== user.email) {
+      // Check if email is already in use by another user
+      const existingUser = await this.userRepository.findOne({
+        where: { email: updateProfileDto.email },
+      });
+      if (existingUser && existingUser.phone !== userPhone) {
+        throw new ConflictException('Email already in use');
+      }
+      user.email = updateProfileDto.email;
+    }
+    
     return this.userRepository.save(user);
   }
 

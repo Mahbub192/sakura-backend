@@ -19,6 +19,7 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "seed": "ts-node -r tsconfig-paths/register src/database/seeds/seed.script.ts",
+    "migrate:user-phone": "ts-node -r tsconfig-paths/register scripts/migrate-user-id-to-phone.ts",
     "setup": "./scripts/setup-env.sh",
     "env:check": "node scripts/verify-config.js",
     "config:verify": "node scripts/verify-config.js"

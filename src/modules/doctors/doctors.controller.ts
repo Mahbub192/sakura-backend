@@ -171,8 +171,8 @@ export class DoctorsController {
       const assistant = await this.assistantsService.getAssistantByUserId(user.userId);
       if (assistant && assistant.doctorId) {
         const doctor = await this.doctorsService.findOne(assistant.doctorId);
-        if (doctor && doctor.userId) {
-          return this.dashboardService.getDashboardStats(doctor.userId);
+        if (doctor && doctor.userPhone) {
+          return this.dashboardService.getDashboardStats(doctor.userPhone);
         }
       }
       throw new NotFoundException('Assistant doctor not found');
@@ -191,8 +191,8 @@ export class DoctorsController {
       const assistant = await this.assistantsService.getAssistantByUserId(user.userId);
       if (assistant && assistant.doctorId) {
         const doctor = await this.doctorsService.findOne(assistant.doctorId);
-        if (doctor && doctor.userId) {
-          return this.dashboardService.getTodayAppointments(doctor.userId);
+        if (doctor && doctor.userPhone) {
+          return this.dashboardService.getTodayAppointments(doctor.userPhone);
         }
       }
       throw new NotFoundException('Assistant doctor not found');
@@ -223,8 +223,8 @@ export class DoctorsController {
       const assistant = await this.assistantsService.getAssistantByUserId(user.userId);
       if (assistant && assistant.doctorId) {
         const doctor = await this.doctorsService.findOne(assistant.doctorId);
-        if (doctor && doctor.userId) {
-          return this.dashboardService.getUpcomingAppointments(doctor.userId, limitNum);
+        if (doctor && doctor.userPhone) {
+          return this.dashboardService.getUpcomingAppointments(doctor.userPhone, limitNum);
         }
       }
       throw new NotFoundException('Assistant doctor not found');

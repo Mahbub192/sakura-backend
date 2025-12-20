@@ -68,7 +68,7 @@ export class Doctor {
   contactInfo: object;
 
   @ApiProperty({ description: 'User phone number reference' })
-  @Column({ name: 'user_phone', type: 'varchar' })
+  @Column({ name: 'user_phone', type: 'varchar', nullable: true })
   userPhone: string;
 
   @ApiProperty({ type: () => User, description: 'Associated user account' })
