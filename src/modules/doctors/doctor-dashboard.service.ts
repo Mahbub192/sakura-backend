@@ -40,9 +40,9 @@ export class DoctorDashboardService {
     private clinicRepository: Repository<Clinic>,
   ) {}
 
-  async getDoctorByUserId(userId: number): Promise<Doctor> {
+  async getDoctorByUserId(userPhone: string): Promise<Doctor> {
     const doctor = await this.doctorRepository.findOne({
-      where: { userId },
+      where: { userPhone },
       relations: ['user', 'assistants'],
     });
 
@@ -53,8 +53,8 @@ export class DoctorDashboardService {
     return doctor;
   }
 
-  async getDashboardStats(userId: number): Promise<DashboardStats> {
-    const doctor = await this.getDoctorByUserId(userId);
+  async getDashboardStats(userPhone: string): Promise<DashboardStats> {
+    const doctor = await this.getDoctorByUserId(userPhone);
     const today = new Date();
     const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
@@ -117,8 +117,8 @@ export class DoctorDashboardService {
     };
   }
 
-  async getTodayAppointments(userId: number): Promise<TodayAppointmentInfo[]> {
-    const doctor = await this.getDoctorByUserId(userId);
+  async getTodayAppointments(userPhone: string): Promise<TodayAppointmentInfo[]> {
+    const doctor = await this.getDoctorByUserId(userPhone);
     const today = new Date();
     const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
@@ -143,8 +143,8 @@ export class DoctorDashboardService {
     }));
   }
 
-  async createAppointmentSchedule(userId: number, scheduleDto: CreateAppointmentScheduleDto): Promise<Appointment[]> {
-    const doctor = await this.getDoctorByUserId(userId);
+  async createAppointmentSchedule(userPhone: string, scheduleDto: CreateAppointmentScheduleDto): Promise<Appointment[]> {
+    const doctor = await this.getDoctorByUserId(userPhone);
     
     // Verify clinic exists
     const clinic = await this.clinicRepository.findOne({
@@ -238,8 +238,8 @@ export class DoctorDashboardService {
     return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
   }
 
-  async getUpcomingAppointments(userId: number, limit: number = 10): Promise<any[]> {
-    const doctor = await this.getDoctorByUserId(userId);
+  async getUpcomingAppointments(userPhone: string, limit: number = 10): Promise<any[]> {
+    const doctor = await this.getDoctorByUserId(userPhone);
     const now = new Date();
 
     const appointments = await this.tokenAppointmentRepository.find({
@@ -255,8 +255,8 @@ export class DoctorDashboardService {
     return appointments;
   }
 
-  async getMonthlyAppointments(userId: number, month: number, year: number): Promise<any[]> {
-    const doctor = await this.getDoctorByUserId(userId);
+  async getMonthlyAppointments(userPhone: string, month: number, year: number): Promise<any[]> {
+    const doctor = await this.getDoctorByUserId(userPhone);
     const startOfMonth = new Date(year, month - 1, 1);
     const endOfMonth = new Date(year, month, 0, 23, 59, 59);
 
@@ -269,16 +269,16 @@ export class DoctorDashboardService {
     });
   }
 
-  async updateDoctorProfile(userId: number, updateData: any): Promise<Doctor> {
-    const doctor = await this.getDoctorByUserId(userId);
+  async updateDoctorProfile(userPhone: string, updateData: any): Promise<Doctor> {
+    const doctor = await this.getDoctorByUserId(userPhone);
     
     Object.assign(doctor, updateData);
     return this.doctorRepository.save(doctor);
   }
 
   // Notification Settings
-  async getNotificationSettings(userId: number): Promise<any> {
-    const doctor = await this.getDoctorByUserId(userId);
+  async getNotificationSettings(userPhone: string): Promise<any> {
+    const doctor = await this.getDoctorByUserId(userPhone);
     // Return default settings if not set, or stored settings from contactInfo or a new settings field
     return (doctor.contactInfo as any)?.notificationSettings || {
       events: {
@@ -300,8 +300,8 @@ export class DoctorDashboardService {
     };
   }
 
-  async updateNotificationSettings(userId: number, settings: any): Promise<Doctor> {
-    const doctor = await this.getDoctorByUserId(userId);
+  async updateNotificationSettings(userPhone: string, settings: any): Promise<Doctor> {
+    const doctor = await this.getDoctorByUserId(userPhone);
     const contactInfo = (doctor.contactInfo as any) || {};
     contactInfo.notificationSettings = settings;
     doctor.contactInfo = contactInfo;
@@ -309,8 +309,8 @@ export class DoctorDashboardService {
   }
 
   // Clinic Info
-  async getClinicInfo(userId: number): Promise<any> {
-    const doctor = await this.getDoctorByUserId(userId);
+  async getClinicInfo(userPhone: string): Promise<any> {
+    const doctor = await this.getDoctorByUserId(userPhone);
     // Return clinic info from contactInfo or default
     return (doctor.contactInfo as any)?.clinicInfo || {
       logo: '',
@@ -331,8 +331,8 @@ export class DoctorDashboardService {
     };
   }
 
-  async updateClinicInfo(userId: number, clinicInfo: any): Promise<Doctor> {
-    const doctor = await this.getDoctorByUserId(userId);
+  async updateClinicInfo(userPhone: string, clinicInfo: any): Promise<Doctor> {
+    const doctor = await this.getDoctorByUserId(userPhone);
     const contactInfo = (doctor.contactInfo as any) || {};
     contactInfo.clinicInfo = clinicInfo;
     doctor.contactInfo = contactInfo;
@@ -340,8 +340,8 @@ export class DoctorDashboardService {
   }
 
   // Billing Stats
-  async getBillingStats(userId: number): Promise<any> {
-    const doctor = await this.getDoctorByUserId(userId);
+  async getBillingStats(userPhone: string): Promise<any> {
+    const doctor = await this.getDoctorByUserId(userPhone);
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);

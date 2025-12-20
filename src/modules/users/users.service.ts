@@ -16,11 +16,17 @@ export class UsersService {
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
-    const { email, role: roleName, ...userData } = createUserDto;
+    const { email, phone, role: roleName, ...userData } = createUserDto;
 
-    // Check if user already exists
-    const existingUser = await this.userRepository.findOne({ where: { email } });
-    if (existingUser) {
+    // Check if user already exists by phone (primary key)
+    const existingUserByPhone = await this.userRepository.findOne({ where: { phone } });
+    if (existingUserByPhone) {
+      throw new ConflictException('User with this phone number already exists');
+    }
+
+    // Check if user already exists by email
+    const existingUserByEmail = await this.userRepository.findOne({ where: { email } });
+    if (existingUserByEmail) {
       throw new ConflictException('User with this email already exists');
     }
 
@@ -54,9 +60,9 @@ export class UsersService {
     });
   }
 
-  async findOne(id: number): Promise<User> {
+  async findOne(phone: string): Promise<User> {
     const user = await this.userRepository.findOne({
-      where: { id },
+      where: { phone },
       relations: ['role'],
     });
 
@@ -80,8 +86,8 @@ export class UsersService {
     return user;
   }
 
-  async update(id: number, updateUserDto: UpdateUserDto): Promise<User> {
-    const user = await this.findOne(id);
+  async update(phone: string, updateUserDto: UpdateUserDto): Promise<User> {
+    const user = await this.findOne(phone);
 
     if (updateUserDto.email && updateUserDto.email !== user.email) {
       const existingUser = await this.userRepository.findOne({
@@ -107,39 +113,39 @@ export class UsersService {
     return this.userRepository.save(user);
   }
 
-  async remove(id: number): Promise<void> {
-    const user = await this.findOne(id);
+  async remove(phone: string): Promise<void> {
+    const user = await this.findOne(phone);
     await this.userRepository.remove(user);
   }
 
-  async updatePassword(id: number, newPassword: string): Promise<void> {
-    const user = await this.findOne(id);
+  async updatePassword(phone: string, newPassword: string): Promise<void> {
+    const user = await this.findOne(phone);
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     user.password = hashedPassword;
     await this.userRepository.save(user);
   }
 
-  async deactivateUser(id: number): Promise<User> {
-    const user = await this.findOne(id);
+  async deactivateUser(phone: string): Promise<User> {
+    const user = await this.findOne(phone);
     user.isActive = false;
     return this.userRepository.save(user);
   }
 
-  async activateUser(id: number): Promise<User> {
-    const user = await this.findOne(id);
+  async activateUser(phone: string): Promise<User> {
+    const user = await this.findOne(phone);
     user.isActive = true;
     return this.userRepository.save(user);
   }
 
-  async updateMyProfile(userId: number, updateProfileDto: CreateMyUserProfileDto): Promise<User> {
-    const user = await this.findOne(userId);
+  async updateMyProfile(userPhone: string, updateProfileDto: CreateMyUserProfileDto): Promise<User> {
+    const user = await this.findOne(userPhone);
     
     Object.assign(user, updateProfileDto);
     return this.userRepository.save(user);
   }
 
-  async changeMyPassword(userId: number, currentPassword: string, newPassword: string): Promise<{ message: string }> {
-    const user = await this.findOne(userId);
+  async changeMyPassword(userPhone: string, currentPassword: string, newPassword: string): Promise<{ message: string }> {
+    const user = await this.findOne(userPhone);
     
     // Verify current password
     const isPasswordValid = await bcrypt.compare(currentPassword, user.password);

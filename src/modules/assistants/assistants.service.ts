@@ -20,12 +20,12 @@ export class AssistantsService {
     private roleRepository: Repository<Role>,
   ) {}
 
-  async create(createAssistantDto: CreateAssistantDto, currentUserId: number): Promise<Assistant> {
+  async create(createAssistantDto: CreateAssistantDto, currentUserPhone: string): Promise<Assistant> {
     const { email, name, phone, ...assistantData } = createAssistantDto;
 
-    // Find doctor by current user ID
+    // Find doctor by current user phone
     const doctor = await this.doctorRepository.findOne({
-      where: { userId: currentUserId },
+      where: { userPhone: currentUserPhone },
       relations: ['user'],
     });
 
@@ -80,16 +80,16 @@ export class AssistantsService {
       email,
       phone,
       doctorId: doctor.id,
-      userId: savedUser.id,
+      userPhone: savedUser.phone,
     });
 
     return this.assistantRepository.save(assistant);
   }
 
-  async findAllByCurrentDoctor(currentUserId: number): Promise<Assistant[]> {
-    // Find doctor by current user ID
+  async findAllByCurrentDoctor(currentUserPhone: string): Promise<Assistant[]> {
+    // Find doctor by current user phone
     const doctor = await this.doctorRepository.findOne({
-      where: { userId: currentUserId },
+      where: { userPhone: currentUserPhone },
       relations: ['user'],
     });
 
@@ -103,7 +103,7 @@ export class AssistantsService {
     });
   }
 
-  async findAllByDoctor(doctorId: number, currentUserId: number): Promise<Assistant[]> {
+  async findAllByDoctor(doctorId: number, currentUserPhone: string): Promise<Assistant[]> {
     // Verify doctor belongs to current user
     const doctor = await this.doctorRepository.findOne({
       where: { id: doctorId },
@@ -114,7 +114,7 @@ export class AssistantsService {
       throw new NotFoundException('Doctor not found');
     }
 
-    if (doctor.userId !== currentUserId) {
+    if (doctor.userPhone !== currentUserPhone) {
       throw new ForbiddenException('You can only view assistants for your own doctor profile');
     }
 
@@ -124,7 +124,7 @@ export class AssistantsService {
     });
   }
 
-  async findOne(id: number, currentUserId: number): Promise<Assistant> {
+  async findOne(id: number, currentUserPhone: string): Promise<Assistant> {
     const assistant = await this.assistantRepository.findOne({
       where: { id },
       relations: ['doctor', 'doctor.user'],
@@ -134,15 +134,15 @@ export class AssistantsService {
       throw new NotFoundException('Assistant not found');
     }
 
-    if (assistant.doctor.userId !== currentUserId) {
+    if (assistant.doctor.userPhone !== currentUserPhone) {
       throw new ForbiddenException('You can only view assistants for your own doctor profile');
     }
 
     return assistant;
   }
 
-  async update(id: number, updateAssistantDto: UpdateAssistantDto, currentUserId: number): Promise<Assistant> {
-    const assistant = await this.findOne(id, currentUserId);
+  async update(id: number, updateAssistantDto: UpdateAssistantDto, currentUserPhone: string): Promise<Assistant> {
+    const assistant = await this.findOne(id, currentUserPhone);
 
     if (updateAssistantDto.email && updateAssistantDto.email !== assistant.email) {
       const existingAssistant = await this.assistantRepository.findOne({
@@ -158,32 +158,32 @@ export class AssistantsService {
     return this.assistantRepository.save(assistant);
   }
 
-  async remove(id: number, currentUserId: number): Promise<void> {
-    const assistant = await this.findOne(id, currentUserId);
+  async remove(id: number, currentUserPhone: string): Promise<void> {
+    const assistant = await this.findOne(id, currentUserPhone);
     await this.assistantRepository.remove(assistant);
   }
 
-  async toggleStatus(id: number, currentUserId: number): Promise<Assistant> {
-    const assistant = await this.findOne(id, currentUserId);
+  async toggleStatus(id: number, currentUserPhone: string): Promise<Assistant> {
+    const assistant = await this.findOne(id, currentUserPhone);
     assistant.isActive = !assistant.isActive;
     return this.assistantRepository.save(assistant);
   }
 
-  async changePassword(assistantId: number, newPassword: string, currentUserId: number): Promise<{ message: string }> {
-    const assistant = await this.findOne(assistantId, currentUserId);
+  async changePassword(assistantId: number, newPassword: string, currentUserPhone: string): Promise<{ message: string }> {
+    const assistant = await this.findOne(assistantId, currentUserPhone);
     
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     
-    await this.userRepository.update(assistant.userId, {
+    await this.userRepository.update(assistant.userPhone, {
       password: hashedPassword,
     });
 
     return { message: 'Password changed successfully' };
   }
 
-  async getAssistantByUserId(userId: number): Promise<Assistant> {
+  async getAssistantByUserId(userPhone: string): Promise<Assistant> {
     const assistant = await this.assistantRepository.findOne({
-      where: { userId },
+      where: { userPhone },
       relations: ['doctor', 'user'],
     });
 
@@ -194,12 +194,12 @@ export class AssistantsService {
     return assistant;
   }
 
-  async createMyProfile(userId: number, createProfileDto: CreateMyAssistantProfileDto): Promise<Assistant> {
+  async createMyProfile(userPhone: string, createProfileDto: CreateMyAssistantProfileDto): Promise<Assistant> {
     const { doctorId, name, phone, ...assistantData } = createProfileDto;
 
     // Check if user exists and has assistant role
     const user = await this.userRepository.findOne({
-      where: { id: userId },
+      where: { phone: userPhone },
       relations: ['role'],
     });
 
@@ -213,7 +213,7 @@ export class AssistantsService {
 
     // Check if assistant profile already exists for this user
     const existingAssistant = await this.assistantRepository.findOne({
-      where: { userId },
+      where: { userPhone },
     });
 
     if (existingAssistant) {
@@ -239,23 +239,23 @@ export class AssistantsService {
       email,
       phone,
       doctorId,
-      userId,
+      userPhone,
       isActive: true,
     });
 
     return this.assistantRepository.save(assistant);
   }
 
-  async checkProfileExists(userId: number): Promise<boolean> {
+  async checkProfileExists(userPhone: string): Promise<boolean> {
     const assistant = await this.assistantRepository.findOne({
-      where: { userId },
+      where: { userPhone },
     });
     return !!assistant;
   }
 
-  async updateMyProfile(userId: number, updateProfileDto: UpdateMyAssistantProfileDto): Promise<Assistant> {
+  async updateMyProfile(userPhone: string, updateProfileDto: UpdateMyAssistantProfileDto): Promise<Assistant> {
     // Get existing assistant profile
-    const assistant = await this.getAssistantByUserId(userId);
+    const assistant = await this.getAssistantByUserId(userPhone);
 
     // Update only allowed fields (name, qualification, experience)
     // Phone and doctorId cannot be changed

@@ -15,7 +15,7 @@ import { MessagesService } from './messages.service';
 import { CreateMessageDto } from './dto/create-message.dto';
 
 type AuthenticatedSocket = Socket & {
-  userId?: number;
+  userId?: string; // Now stores phone number (string)
   userRole?: string;
 };
 
@@ -31,7 +31,7 @@ export class MessagesGateway implements OnGatewayConnection, OnGatewayDisconnect
   server: Server;
 
   private readonly logger = new Logger(MessagesGateway.name);
-  private connectedUsers = new Map<number, string>(); // userId -> socketId
+  private connectedUsers = new Map<string, string>(); // userPhone -> socketId
 
   constructor(
     private readonly messagesService: MessagesService,
@@ -95,7 +95,7 @@ export class MessagesGateway implements OnGatewayConnection, OnGatewayDisconnect
 
       // Create message
       const message = await this.messagesService.createMessage(client.userId, {
-        recipientId: data.recipientId,
+        recipientPhone: data.recipientPhone,
         content: data.content,
         subject: data.subject,
         type: data.type,
@@ -112,25 +112,25 @@ export class MessagesGateway implements OnGatewayConnection, OnGatewayDisconnect
         return;
       }
 
-      const recipientId = thread.participant1Id === client.userId 
-        ? thread.participant2Id 
-        : thread.participant1Id;
+      const recipientPhone = thread.participant1Phone === client.userId 
+        ? thread.participant2Phone 
+        : thread.participant1Phone;
 
       // Emit to sender (confirmation)
       client.emit('message_sent', message);
 
       // Emit to recipient if online
-      const recipientSocketId = this.connectedUsers.get(recipientId);
+      const recipientSocketId = this.connectedUsers.get(recipientPhone);
       if (recipientSocketId) {
         this.server.to(recipientSocketId).emit('new_message', message);
       } else {
         // Store notification for when user comes online
-        this.server.to(`user:${recipientId}`).emit('new_message', message);
+        this.server.to(`user:${recipientPhone}`).emit('new_message', message);
       }
 
       // Emit thread update to both participants
       this.server.to(`user:${client.userId}`).emit('thread_updated', thread);
-      this.server.to(`user:${recipientId}`).emit('thread_updated', thread);
+      this.server.to(`user:${recipientPhone}`).emit('thread_updated', thread);
 
       return message;
     } catch (error) {
@@ -176,12 +176,12 @@ export class MessagesGateway implements OnGatewayConnection, OnGatewayDisconnect
         return;
       }
 
-      const recipientId = thread.participant1Id === client.userId 
-        ? thread.participant2Id 
-        : thread.participant1Id;
+      const recipientPhone = thread.participant1Phone === client.userId 
+        ? thread.participant2Phone 
+        : thread.participant1Phone;
 
       // Emit typing indicator to recipient
-      const recipientSocketId = this.connectedUsers.get(recipientId);
+      const recipientSocketId = this.connectedUsers.get(recipientPhone);
       if (recipientSocketId) {
         this.server.to(recipientSocketId).emit('user_typing', {
           threadId: data.threadId,
@@ -195,13 +195,13 @@ export class MessagesGateway implements OnGatewayConnection, OnGatewayDisconnect
   }
 
   // Helper method to get online status
-  isUserOnline(userId: number): boolean {
-    return this.connectedUsers.has(userId);
+  isUserOnline(userPhone: string): boolean {
+    return this.connectedUsers.has(userPhone);
   }
 
   // Helper method to get socket ID for a user
-  getSocketId(userId: number): string | undefined {
-    return this.connectedUsers.get(userId);
+  getSocketId(userPhone: string): string | undefined {
+    return this.connectedUsers.get(userPhone);
   }
 }
 

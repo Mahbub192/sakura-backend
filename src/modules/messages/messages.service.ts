@@ -25,24 +25,24 @@ export class MessagesService {
   /**
    * Get or create a thread between two users
    */
-  async getOrCreateThread(userId: number, participantId: number): Promise<MessageThread> {
-    if (userId === participantId) {
+  async getOrCreateThread(userPhone: string, participantPhone: string): Promise<MessageThread> {
+    if (userPhone === participantPhone) {
       throw new BadRequestException('Cannot create thread with yourself');
     }
 
     // Check if thread already exists (in either direction)
     let thread = await this.threadRepository.findOne({
       where: [
-        { participant1Id: userId, participant2Id: participantId },
-        { participant1Id: participantId, participant2Id: userId },
+        { participant1Phone: userPhone, participant2Phone: participantPhone },
+        { participant1Phone: participantPhone, participant2Phone: userPhone },
       ],
       relations: ['participant1', 'participant2'],
     });
 
     if (!thread) {
       // Create new thread
-      const participant1 = await this.userRepository.findOne({ where: { id: userId } });
-      const participant2 = await this.userRepository.findOne({ where: { id: participantId } });
+      const participant1 = await this.userRepository.findOne({ where: { phone: userPhone } });
+      const participant2 = await this.userRepository.findOne({ where: { phone: participantPhone } });
 
       if (!participant1 || !participant2) {
         throw new NotFoundException('One or both users not found');
@@ -50,8 +50,8 @@ export class MessagesService {
 
       thread = this.threadRepository.create({
         threadId: uuidv4(),
-        participant1Id: userId,
-        participant2Id: participantId,
+        participant1Phone: userPhone,
+        participant2Phone: participantPhone,
         participant1,
         participant2,
         unreadCount1: 0,
@@ -67,19 +67,19 @@ export class MessagesService {
   /**
    * Create a new message
    */
-  async createMessage(userId: number, createMessageDto: CreateMessageDto): Promise<Message> {
-    const { recipientId, content, subject, type = MessageType.TEXT, channel = MessageChannel.IN_APP, attachmentUrl } = createMessageDto;
+  async createMessage(userPhone: string, createMessageDto: CreateMessageDto): Promise<Message> {
+    const { recipientPhone, content, subject, type = MessageType.TEXT, channel = MessageChannel.IN_APP, attachmentUrl } = createMessageDto;
 
-    if (userId === recipientId) {
+    if (userPhone === recipientPhone) {
       throw new BadRequestException('Cannot send message to yourself');
     }
 
     // Get or create thread
-    const thread = await this.getOrCreateThread(userId, recipientId);
+    const thread = await this.getOrCreateThread(userPhone, recipientPhone);
 
     // Get sender and recipient
-    const sender = await this.userRepository.findOne({ where: { id: userId } });
-    const recipient = await this.userRepository.findOne({ where: { id: recipientId } });
+    const sender = await this.userRepository.findOne({ where: { phone: userPhone } });
+    const recipient = await this.userRepository.findOne({ where: { phone: recipientPhone } });
 
     if (!sender || !recipient) {
       throw new NotFoundException('Sender or recipient not found');
@@ -88,8 +88,8 @@ export class MessagesService {
     // Create message
     const message = this.messageRepository.create({
       threadId: thread.threadId,
-      senderId: userId,
-      recipientId,
+      senderPhone: userPhone,
+      recipientPhone,
       sender,
       recipient,
       content,
@@ -107,7 +107,7 @@ export class MessagesService {
     thread.lastMessageAt = new Date();
     
     // Increment unread count for recipient
-    if (thread.participant1Id === recipientId) {
+    if (thread.participant1Phone === recipientPhone) {
       thread.unreadCount1 += 1;
     } else {
       thread.unreadCount2 += 1;
@@ -121,10 +121,10 @@ export class MessagesService {
   /**
    * Get all threads for a user
    */
-  async getThreads(userId: number, filter?: 'all' | 'unread' | 'flagged'): Promise<MessageThread[]> {
+  async getThreads(userPhone: string, filter?: 'all' | 'unread' | 'flagged'): Promise<MessageThread[]> {
     const whereConditions: any[] = [
-      { participant1Id: userId },
-      { participant2Id: userId },
+      { participant1Phone: userPhone },
+      { participant2Phone: userPhone },
     ];
 
     const threads = await this.threadRepository.find({
@@ -138,7 +138,7 @@ export class MessagesService {
 
     if (filter === 'unread') {
       filteredThreads = threads.filter(thread => {
-        const unreadCount = thread.participant1Id === userId ? thread.unreadCount1 : thread.unreadCount2;
+        const unreadCount = thread.participant1Phone === userPhone ? thread.unreadCount1 : thread.unreadCount2;
         return unreadCount > 0;
       });
     }
@@ -151,12 +151,12 @@ export class MessagesService {
   /**
    * Get messages in a thread
    */
-  async getThreadMessages(userId: number, threadId: string): Promise<Message[]> {
+  async getThreadMessages(userPhone: string, threadId: string): Promise<Message[]> {
     // Verify user is a participant in the thread
     const thread = await this.threadRepository.findOne({
       where: [
-        { threadId, participant1Id: userId },
-        { threadId, participant2Id: userId },
+        { threadId, participant1Phone: userPhone },
+        { threadId, participant2Phone: userPhone },
       ],
     });
 
@@ -176,12 +176,12 @@ export class MessagesService {
   /**
    * Mark messages in a thread as read
    */
-  async markThreadAsRead(userId: number, threadId: string): Promise<void> {
+  async markThreadAsRead(userPhone: string, threadId: string): Promise<void> {
     // Verify user is a participant in the thread
     const thread = await this.threadRepository.findOne({
       where: [
-        { threadId, participant1Id: userId },
-        { threadId, participant2Id: userId },
+        { threadId, participant1Phone: userPhone },
+        { threadId, participant2Phone: userPhone },
       ],
     });
 
@@ -193,7 +193,7 @@ export class MessagesService {
     await this.messageRepository.update(
       {
         threadId,
-        recipientId: userId,
+        recipientPhone: userPhone,
         isRead: false,
       },
       {
@@ -203,7 +203,7 @@ export class MessagesService {
     );
 
     // Reset unread count
-    if (thread.participant1Id === userId) {
+    if (thread.participant1Phone === userPhone) {
       thread.unreadCount1 = 0;
     } else {
       thread.unreadCount2 = 0;
@@ -215,12 +215,12 @@ export class MessagesService {
   /**
    * Search messages
    */
-  async searchMessages(userId: number, query: string): Promise<Message[]> {
+  async searchMessages(userPhone: string, query: string): Promise<Message[]> {
     const messages = await this.messageRepository
       .createQueryBuilder('message')
       .leftJoinAndSelect('message.sender', 'sender')
       .leftJoinAndSelect('message.recipient', 'recipient')
-      .where('(message.senderId = :userId OR message.recipientId = :userId)', { userId })
+      .where('(message.senderPhone = :userPhone OR message.recipientPhone = :userPhone)', { userPhone })
       .andWhere('(message.content ILIKE :query OR message.subject ILIKE :query)', { query: `%${query}%` })
       .orderBy('message.createdAt', 'DESC')
       .limit(50)
@@ -232,17 +232,17 @@ export class MessagesService {
   /**
    * Get unread message count for a user
    */
-  async getUnreadCount(userId: number): Promise<number> {
+  async getUnreadCount(userPhone: string): Promise<number> {
     const threads = await this.threadRepository.find({
       where: [
-        { participant1Id: userId },
-        { participant2Id: userId },
+        { participant1Phone: userPhone },
+        { participant2Phone: userPhone },
       ],
     });
 
     let totalUnread = 0;
     threads.forEach(thread => {
-      const unreadCount = thread.participant1Id === userId ? thread.unreadCount1 : thread.unreadCount2;
+      const unreadCount = thread.participant1Phone === userPhone ? thread.unreadCount1 : thread.unreadCount2;
       totalUnread += unreadCount;
     });
 
@@ -252,9 +252,9 @@ export class MessagesService {
   /**
    * Get available recipients for a user (doctors, assistants, admins for patients)
    */
-  async getAvailableRecipients(userId: number): Promise<any[]> {
+  async getAvailableRecipients(userPhone: string): Promise<any[]> {
     const currentUser = await this.userRepository.findOne({
-      where: { id: userId },
+      where: { phone: userPhone },
       relations: ['role'],
     });
 
@@ -280,14 +280,13 @@ export class MessagesService {
           isActive: true,
         },
         relations: ['role', 'doctor', 'assistant'],
-        select: ['id', 'firstName', 'lastName', 'email', 'phone'],
+        select: ['phone', 'firstName', 'lastName', 'email'],
       });
 
       return recipients.map(user => ({
-        id: user.id,
+        phone: user.phone,
         name: `${user.firstName} ${user.lastName}`,
         email: user.email,
-        phone: user.phone,
         role: user.role.name,
         specialization: user.doctor?.specialization || null,
         profileImage: user.doctor?.profileImage || null,
@@ -310,14 +309,13 @@ export class MessagesService {
           isActive: true,
         },
         relations: ['role'],
-        select: ['id', 'firstName', 'lastName', 'email', 'phone'],
+        select: ['phone', 'firstName', 'lastName', 'email'],
       });
 
       return recipients.map(user => ({
-        id: user.id,
+        phone: user.phone,
         name: `${user.firstName} ${user.lastName}`,
         email: user.email,
-        phone: user.phone,
         role: user.role.name,
       }));
     }

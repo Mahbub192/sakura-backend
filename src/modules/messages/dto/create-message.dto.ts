@@ -3,9 +3,9 @@ import { IsString, IsNumber, IsOptional, IsEnum, MinLength } from 'class-validat
 import { MessageType, MessageChannel } from '../../../entities/message.entity';
 
 export class CreateMessageDto {
-  @ApiProperty({ description: 'Recipient user ID' })
-  @IsNumber()
-  recipientId: number;
+  @ApiProperty({ description: 'Recipient user phone number' })
+  @IsString()
+  recipientPhone: string;
 
   @ApiProperty({ description: 'Message content' })
   @IsString()

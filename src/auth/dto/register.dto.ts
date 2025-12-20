@@ -20,10 +20,9 @@ export class RegisterDto {
   @IsString()
   lastName: string;
 
-  @ApiProperty({ description: 'User phone number', required: false })
-  @IsOptional()
+  @ApiProperty({ description: 'User phone number (Primary Key)' })
   @IsString()
-  phone?: string;
+  phone: string;
 
   @ApiProperty({ description: 'User role', enum: RoleType, default: RoleType.USER })
   @IsEnum(RoleType)

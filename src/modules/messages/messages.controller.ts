@@ -43,7 +43,7 @@ export class MessagesController {
     @CurrentUser() user: any,
     @Body() createThreadDto: CreateThreadDto,
   ): Promise<MessageThread> {
-    return this.messagesService.getOrCreateThread(user.userId, createThreadDto.participantId);
+    return this.messagesService.getOrCreateThread(user.userId, createThreadDto.participantPhone);
   }
 
   @Get('threads')

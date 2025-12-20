@@ -25,22 +25,22 @@ export class Message {
   @Column({ name: 'thread_id', type: 'varchar' })
   threadId: string;
 
-  @ApiProperty({ description: 'Sender user ID' })
-  @Column({ name: 'sender_id' })
-  senderId: number;
+  @ApiProperty({ description: 'Sender user phone number' })
+  @Column({ name: 'sender_phone', type: 'varchar' })
+  senderPhone: string;
 
   @ApiProperty({ type: () => User, description: 'Sender user' })
   @ManyToOne(() => User, { eager: true })
-  @JoinColumn({ name: 'sender_id' })
+  @JoinColumn({ name: 'sender_phone' })
   sender: User;
 
-  @ApiProperty({ description: 'Recipient user ID' })
-  @Column({ name: 'recipient_id' })
-  recipientId: number;
+  @ApiProperty({ description: 'Recipient user phone number' })
+  @Column({ name: 'recipient_phone', type: 'varchar' })
+  recipientPhone: string;
 
   @ApiProperty({ type: () => User, description: 'Recipient user' })
   @ManyToOne(() => User, { eager: true })
-  @JoinColumn({ name: 'recipient_id' })
+  @JoinColumn({ name: 'recipient_phone' })
   recipient: User;
 
   @ApiProperty({ description: 'Message content' })

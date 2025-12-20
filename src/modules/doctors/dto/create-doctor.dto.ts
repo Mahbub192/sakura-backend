@@ -72,9 +72,9 @@ export class CreateDoctorDto {
   @IsObject()
   contactInfo?: object;
 
-  @ApiProperty({ description: 'User ID reference' })
-  @IsNumber()
-  userId: number;
+  @ApiProperty({ description: 'User phone number reference' })
+  @IsString()
+  userPhone: string;
 }
 
 

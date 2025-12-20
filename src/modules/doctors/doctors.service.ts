@@ -15,11 +15,11 @@ export class DoctorsService {
   ) {}
 
   async create(createDoctorDto: CreateDoctorDto): Promise<Doctor> {
-    const { userId, licenseNumber, ...doctorData } = createDoctorDto;
+    const { userPhone, licenseNumber, ...doctorData } = createDoctorDto;
 
     // Check if user exists and has doctor role
     const user = await this.userRepository.findOne({
-      where: { id: userId },
+      where: { phone: userPhone },
       relations: ['role'],
     });
 
@@ -33,7 +33,7 @@ export class DoctorsService {
 
     // Check if doctor already exists for this user
     const existingDoctor = await this.doctorRepository.findOne({
-      where: { userId },
+      where: { userPhone },
     });
 
     if (existingDoctor) {
@@ -52,18 +52,18 @@ export class DoctorsService {
     const doctor = this.doctorRepository.create({
       ...doctorData,
       licenseNumber,
-      userId,
+      userPhone,
     });
 
     return this.doctorRepository.save(doctor);
   }
 
-  async createMyProfile(userId: number, createProfileDto: CreateMyDoctorProfileDto): Promise<Doctor> {
+  async createMyProfile(userPhone: string, createProfileDto: CreateMyDoctorProfileDto): Promise<Doctor> {
     const { licenseNumber, ...doctorData } = createProfileDto;
 
     // Check if user exists and has doctor role
     const user = await this.userRepository.findOne({
-      where: { id: userId },
+      where: { phone: userPhone },
       relations: ['role'],
     });
 
@@ -77,7 +77,7 @@ export class DoctorsService {
 
     // Check if doctor already exists for this user
     const existingDoctor = await this.doctorRepository.findOne({
-      where: { userId },
+      where: { userPhone },
     });
 
     if (existingDoctor) {
@@ -96,7 +96,7 @@ export class DoctorsService {
     const doctor = this.doctorRepository.create({
       ...doctorData,
       licenseNumber,
-      userId,
+      userPhone,
     });
 
     return this.doctorRepository.save(doctor);
@@ -143,9 +143,9 @@ export class DoctorsService {
     await this.doctorRepository.remove(doctor);
   }
 
-  async findByUserId(userId: number): Promise<Doctor> {
+  async findByUserId(userPhone: string): Promise<Doctor> {
     const doctor = await this.doctorRepository.findOne({
-      where: { userId },
+      where: { userPhone },
       relations: ['user', 'assistants'],
     });
 
@@ -163,9 +163,9 @@ export class DoctorsService {
     });
   }
 
-  async checkProfileExists(userId: number): Promise<boolean> {
+  async checkProfileExists(userPhone: string): Promise<boolean> {
     const doctor = await this.doctorRepository.findOne({
-      where: { userId },
+      where: { userPhone },
     });
     return !!doctor;
   }

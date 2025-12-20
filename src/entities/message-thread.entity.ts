@@ -13,22 +13,22 @@ export class MessageThread {
   @Column({ type: 'varchar', unique: true })
   threadId: string;
 
-  @ApiProperty({ description: 'Participant 1 user ID' })
-  @Column({ name: 'participant1_id' })
-  participant1Id: number;
+  @ApiProperty({ description: 'Participant 1 user phone number' })
+  @Column({ name: 'participant1_phone', type: 'varchar' })
+  participant1Phone: string;
 
   @ApiProperty({ type: () => User, description: 'Participant 1 user' })
   @ManyToOne(() => User, { eager: true })
-  @JoinColumn({ name: 'participant1_id' })
+  @JoinColumn({ name: 'participant1_phone' })
   participant1: User;
 
-  @ApiProperty({ description: 'Participant 2 user ID' })
-  @Column({ name: 'participant2_id' })
-  participant2Id: number;
+  @ApiProperty({ description: 'Participant 2 user phone number' })
+  @Column({ name: 'participant2_phone', type: 'varchar' })
+  participant2Phone: string;
 
   @ApiProperty({ type: () => User, description: 'Participant 2 user' })
   @ManyToOne(() => User, { eager: true })
-  @JoinColumn({ name: 'participant2_id' })
+  @JoinColumn({ name: 'participant2_phone' })
   participant2: User;
 
   @ApiProperty({ description: 'Last message content preview', required: false })

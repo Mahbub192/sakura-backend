@@ -1,15 +1,22 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToOne } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
-import { Role } from './role.entity';
-import { Doctor } from './doctor.entity';
-import { Assistant } from './assistant.entity';
 import { Exclude } from 'class-transformer';
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  OneToOne,
+  PrimaryColumn,
+} from 'typeorm';
+import { Assistant } from './assistant.entity';
+import { Doctor } from './doctor.entity';
+import { Role } from './role.entity';
 
 @Entity('users')
 export class User {
-  @ApiProperty({ description: 'Unique user identifier' })
-  @PrimaryGeneratedColumn()
-  id: number;
+  @ApiProperty({ description: 'User phone number (Primary Key)' })
+  @PrimaryColumn({ type: 'varchar' })
+  phone: string;
 
   @ApiProperty({ description: 'User email address' })
   @Column({ type: 'varchar', unique: true })
@@ -26,10 +33,6 @@ export class User {
   @ApiProperty({ description: 'User last name' })
   @Column({ type: 'varchar' })
   lastName: string;
-
-  @ApiProperty({ description: 'User phone number', required: false })
-  @Column({ type: 'varchar', nullable: true })
-  phone: string;
 
   @ApiProperty({ description: 'User role ID' })
   @Column({ name: 'role_id' })
@@ -62,6 +65,3 @@ export class User {
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   updatedAt: Date;
 }
-
-
-

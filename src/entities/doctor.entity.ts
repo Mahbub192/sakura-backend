@@ -67,13 +67,13 @@ export class Doctor {
   @Column({ type: 'json', nullable: true })
   contactInfo: object;
 
-  @ApiProperty({ description: 'User ID reference' })
-  @Column({ name: 'user_id' })
-  userId: number;
+  @ApiProperty({ description: 'User phone number reference' })
+  @Column({ name: 'user_phone', type: 'varchar' })
+  userPhone: string;
 
   @ApiProperty({ type: () => User, description: 'Associated user account' })
   @OneToOne(() => User, (user) => user.doctor, { eager: true })
-  @JoinColumn({ name: 'user_id' })
+  @JoinColumn({ name: 'user_phone' })
   user: User;
 
   @OneToMany(() => Assistant, (assistant) => assistant.doctor)

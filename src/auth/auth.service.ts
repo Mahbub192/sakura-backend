@@ -19,9 +19,15 @@ export class AuthService {
   async register(registerDto: RegisterDto) {
     const { email, password, firstName, lastName, phone, role } = registerDto;
 
-    // Check if user already exists
-    const existingUser = await this.userRepository.findOne({ where: { email } });
-    if (existingUser) {
+    // Check if user already exists by phone (primary key)
+    const existingUserByPhone = await this.userRepository.findOne({ where: { phone } });
+    if (existingUserByPhone) {
+      throw new ConflictException('User with this phone number already exists');
+    }
+
+    // Check if user already exists by email
+    const existingUserByEmail = await this.userRepository.findOne({ where: { email } });
+    if (existingUserByEmail) {
       throw new ConflictException('User with this email already exists');
     }
 
@@ -36,11 +42,11 @@ export class AuthService {
 
     // Create user
     const user = this.userRepository.create({
+      phone,
       email,
       password: hashedPassword,
       firstName,
       lastName,
-      phone,
       roleId: userRole.id,
     });
 
@@ -48,7 +54,7 @@ export class AuthService {
 
     // Generate JWT token
     const payload = { 
-      sub: savedUser.id, 
+      sub: savedUser.phone, 
       email: savedUser.email, 
       role: userRole.name 
     };
@@ -56,7 +62,7 @@ export class AuthService {
     return {
       access_token: this.jwtService.sign(payload),
       user: {
-        id: savedUser.id,
+        phone: savedUser.phone,
         email: savedUser.email,
         firstName: savedUser.firstName,
         lastName: savedUser.lastName,
@@ -74,7 +80,7 @@ export class AuthService {
     }
 
     const payload = { 
-      sub: user.id, 
+      sub: user.phone, 
       email: user.email, 
       role: user.role.name 
     };
@@ -82,7 +88,7 @@ export class AuthService {
     return {
       access_token: this.jwtService.sign(payload),
       user: {
-        id: user.id,
+        phone: user.phone,
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
@@ -103,9 +109,9 @@ export class AuthService {
     return null;
   }
 
-  async findUserById(id: number): Promise<User | null> {
+  async findUserByPhone(phone: string): Promise<User | null> {
     return this.userRepository.findOne({ 
-      where: { id },
+      where: { phone },
       relations: ['role'],
     });
   }

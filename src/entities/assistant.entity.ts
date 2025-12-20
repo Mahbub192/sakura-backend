@@ -38,13 +38,13 @@ export class Assistant {
   @JoinColumn({ name: 'doctor_id' })
   doctor: Doctor;
 
-  @ApiProperty({ description: 'User ID reference' })
-  @Column({ name: 'user_id', nullable: true })
-  userId: number;
+  @ApiProperty({ description: 'User phone number reference' })
+  @Column({ name: 'user_phone', type: 'varchar', nullable: true })
+  userPhone: string;
 
   @ApiProperty({ type: () => User, description: 'Associated user account' })
   @OneToOne(() => User, (user) => user.assistant, { eager: true })
-  @JoinColumn({ name: 'user_id' })
+  @JoinColumn({ name: 'user_phone' })
   user: User;
 
   @ApiProperty({ description: 'Employment status' })

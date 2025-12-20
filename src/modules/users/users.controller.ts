@@ -73,59 +73,59 @@ export class UsersController {
   }
 
 
-  @Get(':id')
+  @Get(':phone')
   @UseGuards(RolesGuard)
   @Roles(RoleType.ADMIN)
-  @ApiOperation({ summary: 'Get user by ID (Admin only)' })
+  @ApiOperation({ summary: 'Get user by phone number (Admin only)' })
   @ApiResponse({ status: 200, description: 'User found' })
   @ApiResponse({ status: 404, description: 'User not found' })
-  @ApiParam({ name: 'id', description: 'User ID' })
-  findOne(@Param('id') id: string) {
-    return this.usersService.findOne(+id);
+  @ApiParam({ name: 'phone', description: 'User phone number' })
+  findOne(@Param('phone') phone: string) {
+    return this.usersService.findOne(phone);
   }
 
-  @Patch(':id')
+  @Patch(':phone')
   @UseGuards(RolesGuard)
   @Roles(RoleType.ADMIN)
   @ApiOperation({ summary: 'Update user (Admin only)' })
   @ApiResponse({ status: 200, description: 'User updated' })
   @ApiResponse({ status: 404, description: 'User not found' })
-  @ApiParam({ name: 'id', description: 'User ID' })
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.usersService.update(+id, updateUserDto);
+  @ApiParam({ name: 'phone', description: 'User phone number' })
+  update(@Param('phone') phone: string, @Body() updateUserDto: UpdateUserDto) {
+    return this.usersService.update(phone, updateUserDto);
   }
 
-  @Patch(':id/deactivate')
+  @Patch(':phone/deactivate')
   @UseGuards(RolesGuard)
   @Roles(RoleType.ADMIN)
   @ApiOperation({ summary: 'Deactivate user (Admin only)' })
   @ApiResponse({ status: 200, description: 'User deactivated' })
   @ApiResponse({ status: 404, description: 'User not found' })
-  @ApiParam({ name: 'id', description: 'User ID' })
-  deactivate(@Param('id') id: string) {
-    return this.usersService.deactivateUser(+id);
+  @ApiParam({ name: 'phone', description: 'User phone number' })
+  deactivate(@Param('phone') phone: string) {
+    return this.usersService.deactivateUser(phone);
   }
 
-  @Patch(':id/activate')
+  @Patch(':phone/activate')
   @UseGuards(RolesGuard)
   @Roles(RoleType.ADMIN)
   @ApiOperation({ summary: 'Activate user (Admin only)' })
   @ApiResponse({ status: 200, description: 'User activated' })
   @ApiResponse({ status: 404, description: 'User not found' })
-  @ApiParam({ name: 'id', description: 'User ID' })
-  activate(@Param('id') id: string) {
-    return this.usersService.activateUser(+id);
+  @ApiParam({ name: 'phone', description: 'User phone number' })
+  activate(@Param('phone') phone: string) {
+    return this.usersService.activateUser(phone);
   }
 
-  @Delete(':id')
+  @Delete(':phone')
   @UseGuards(RolesGuard)
   @Roles(RoleType.ADMIN)
   @ApiOperation({ summary: 'Delete user (Admin only)' })
   @ApiResponse({ status: 200, description: 'User deleted' })
   @ApiResponse({ status: 404, description: 'User not found' })
-  @ApiParam({ name: 'id', description: 'User ID' })
-  remove(@Param('id') id: string) {
-    return this.usersService.remove(+id);
+  @ApiParam({ name: 'phone', description: 'User phone number' })
+  remove(@Param('phone') phone: string) {
+    return this.usersService.remove(phone);
   }
 }
 
