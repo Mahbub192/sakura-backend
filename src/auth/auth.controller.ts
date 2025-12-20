@@ -40,9 +40,12 @@ export class AuthController {
       throw new UnauthorizedException('User not found');
     }
     
-    // Return user data without password
-    const { password, ...userWithoutPassword } = fullUser;
-    return userWithoutPassword;
+    // Return user data without password, with role as string
+    const { password, role, ...userWithoutPassword } = fullUser;
+    return {
+      ...userWithoutPassword,
+      role: role?.name || user.role, // Return role name as string
+    };
   }
 }
 

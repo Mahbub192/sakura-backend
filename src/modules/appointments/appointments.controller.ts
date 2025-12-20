@@ -8,6 +8,7 @@ import {
   Delete,
   UseGuards,
   Query,
+  ForbiddenException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -104,11 +105,38 @@ export class AppointmentsController {
   @ApiQuery({ name: 'doctorId', required: false, description: 'Filter by doctor ID' })
   @ApiQuery({ name: 'date', required: false, description: 'Filter by specific date (YYYY-MM-DD)' })
   @ApiQuery({ name: 'clinicId', required: false, description: 'Filter by clinic ID' })
-  findAvailable(
+  async findAvailable(
     @Query('doctorId') doctorId?: string,
     @Query('date') date?: string,
     @Query('clinicId') clinicId?: string,
+    @CurrentUser() user?: any,
   ) {
+    // If user is a doctor, automatically filter by their doctor ID
+    if (user && user.role === RoleType.DOCTOR && !doctorId) {
+      try {
+        const doctor = await this.doctorsService.findByUserId(user.userId);
+        if (doctor) {
+          return this.appointmentsService.findAvailableSlots(doctor.id, date, clinicId ? +clinicId : undefined);
+        }
+      } catch (error) {
+        // If doctor profile doesn't exist, return empty array
+        return [];
+      }
+    }
+
+    // If user is an assistant, automatically filter by their assigned doctor ID
+    if (user && user.role === RoleType.ASSISTANT && !doctorId) {
+      try {
+        const assistant = await this.assistantsService.getAssistantByUserId(user.userId);
+        if (assistant) {
+          return this.appointmentsService.findAvailableSlots(assistant.doctorId, date, clinicId ? +clinicId : undefined);
+        }
+      } catch (error) {
+        // If assistant profile doesn't exist, return empty array
+        return [];
+      }
+    }
+
     return this.appointmentsService.findAvailableSlots(
       doctorId ? +doctorId : undefined,
       date,
@@ -120,9 +148,27 @@ export class AppointmentsController {
   @ApiOperation({ summary: 'Get appointment slot by ID' })
   @ApiResponse({ status: 200, description: 'Appointment slot found' })
   @ApiResponse({ status: 404, description: 'Appointment slot not found' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Assistant can only view their doctor\'s appointments' })
   @ApiParam({ name: 'id', description: 'Appointment ID' })
-  findOne(@Param('id') id: string) {
-    return this.appointmentsService.findOne(+id);
+  async findOne(@Param('id') id: string, @CurrentUser() user?: any) {
+    const appointment = await this.appointmentsService.findOne(+id);
+    
+    // If user is an assistant, verify they can view this appointment
+    if (user && user.role === RoleType.ASSISTANT) {
+      try {
+        const assistant = await this.assistantsService.getAssistantByUserId(user.userId);
+        if (assistant && appointment.doctorId !== assistant.doctorId) {
+          throw new ForbiddenException('Assistant can only view appointments for their assigned doctor');
+        }
+      } catch (error) {
+        if (error instanceof ForbiddenException) {
+          throw error;
+        }
+        // If assistant profile doesn't exist, allow access (will be handled by service)
+      }
+    }
+    
+    return appointment;
   }
 
   @Patch(':id/status')

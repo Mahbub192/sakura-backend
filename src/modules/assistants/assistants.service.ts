@@ -127,7 +127,7 @@ export class AssistantsService {
   async findOne(id: number, currentUserPhone: string): Promise<Assistant> {
     const assistant = await this.assistantRepository.findOne({
       where: { id },
-      relations: ['doctor', 'doctor.user'],
+      relations: ['doctor', 'doctor.user', 'user'],
     });
 
     if (!assistant) {
@@ -160,7 +160,24 @@ export class AssistantsService {
 
   async remove(id: number, currentUserPhone: string): Promise<void> {
     const assistant = await this.findOne(id, currentUserPhone);
+    
+    // Store user phone before deleting assistant
+    const userPhone = assistant.userPhone;
+    
+    // Delete assistant first
     await this.assistantRepository.remove(assistant);
+    
+    // If assistant has an associated user account, delete it too
+    if (userPhone) {
+      const user = await this.userRepository.findOne({
+        where: { phone: userPhone },
+      });
+      
+      if (user) {
+        await this.userRepository.remove(user);
+        console.log(`Deleted user account for assistant: ${userPhone}`);
+      }
+    }
   }
 
   async toggleStatus(id: number, currentUserPhone: string): Promise<Assistant> {
