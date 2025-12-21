@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Between, Repository } from 'typeorm';
+import { Between, In, Repository } from 'typeorm';
 import {
   Appointment,
   AppointmentStatus,
@@ -186,10 +186,50 @@ export class AssistantBookingService {
       order: { startTime: 'ASC' },
     });
 
-    // Filter out fully booked slots
-    return appointments.filter(
-      (appointment) => appointment.currentBookings < appointment.maxPatients,
-    );
+    // Get booked times for all appointment slots
+    const appointmentIds = appointments.map((apt) => apt.id);
+    const bookedTimesMap = await this.getBookedTimesForSlots(appointmentIds);
+
+    // Add bookedTimes to each appointment and filter out fully booked slots
+    return appointments
+      .map((appointment) => {
+        const bookedTimes = bookedTimesMap[appointment.id] || [];
+        return {
+          ...appointment,
+          bookedTimes, // Add bookedTimes array to appointment object
+        };
+      })
+      .filter(
+        (appointment) => appointment.currentBookings < appointment.maxPatients,
+      );
+  }
+
+  private async getBookedTimesForSlots(
+    appointmentIds: number[],
+  ): Promise<Record<number, string[]>> {
+    if (!appointmentIds || appointmentIds.length === 0) {
+      return {};
+    }
+
+    const bookings = await this.tokenAppointmentRepository.find({
+      where: {
+        appointmentId: In(appointmentIds),
+        status: TokenAppointmentStatus.CONFIRMED,
+      },
+      select: ['appointmentId', 'time'],
+      order: { time: 'ASC' },
+    });
+
+    // Group bookings by appointmentId
+    const bookedTimesMap: Record<number, string[]> = {};
+    bookings.forEach((booking) => {
+      if (!bookedTimesMap[booking.appointmentId]) {
+        bookedTimesMap[booking.appointmentId] = [];
+      }
+      bookedTimesMap[booking.appointmentId].push(booking.time);
+    });
+
+    return bookedTimesMap;
   }
 
   async getDoctorBookings(
