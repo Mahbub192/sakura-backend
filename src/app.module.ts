@@ -25,6 +25,7 @@ import { DoctorsModule } from './modules/doctors/doctors.module';
 import { MessagesModule } from './modules/messages/messages.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { PatientsModule } from './modules/patients/patients.module';
+import { PublicModule } from './modules/public/public.module';
 import { TokenAppointmentsModule } from './modules/token-appointments/token-appointments.module';
 import { UsersModule } from './modules/users/users.module';
 
@@ -82,6 +83,7 @@ import { UsersModule } from './modules/users/users.module';
     AssistantsModule,
     AppointmentsModule,
     TokenAppointmentsModule,
+    PublicModule,
     ClinicsModule,
     PatientsModule,
     NotificationsModule,

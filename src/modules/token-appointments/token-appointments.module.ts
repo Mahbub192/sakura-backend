@@ -1,12 +1,14 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { TokenAppointmentsService } from './token-appointments.service';
-import { AssistantBookingService } from './assistant-booking.service';
-import { TokenAppointmentsController } from './token-appointments.controller';
-import { AssistantBookingController } from './assistant-booking.controller';
-import { TokenAppointment, Appointment, Doctor, Assistant } from '../../entities';
-import { DoctorsModule } from '../doctors/doctors.module';
+import { Appointment, Assistant, Doctor, TokenAppointment } from '../../entities';
 import { AssistantsModule } from '../assistants/assistants.module';
+import { DoctorsModule } from '../doctors/doctors.module';
+import { AssistantBookingController } from './assistant-booking.controller';
+import { AssistantBookingService } from './assistant-booking.service';
+import { DoctorBookingController } from './doctor-booking.controller';
+import { DoctorBookingService } from './doctor-booking.service';
+import { TokenAppointmentsController } from './token-appointments.controller';
+import { TokenAppointmentsService } from './token-appointments.service';
 
 @Module({
   imports: [
@@ -14,9 +16,9 @@ import { AssistantsModule } from '../assistants/assistants.module';
     DoctorsModule,
     AssistantsModule,
   ],
-  controllers: [TokenAppointmentsController, AssistantBookingController],
-  providers: [TokenAppointmentsService, AssistantBookingService],
-  exports: [TokenAppointmentsService, AssistantBookingService],
+  controllers: [TokenAppointmentsController, AssistantBookingController, DoctorBookingController],
+  providers: [TokenAppointmentsService, AssistantBookingService, DoctorBookingService],
+  exports: [TokenAppointmentsService, AssistantBookingService, DoctorBookingService],
 })
 export class TokenAppointmentsModule {}
 
