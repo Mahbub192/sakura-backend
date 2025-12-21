@@ -1,14 +1,33 @@
-import { IsString, IsEmail, IsInt, Min, IsOptional, IsBoolean, IsNumber, IsDateString, Matches } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import {
+  IsBoolean,
+  IsDateString,
+  IsEmail,
+  IsInt,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Matches,
+  Min,
+  ValidateIf,
+} from 'class-validator';
 
 export class CreatePatientBookingDto {
   @ApiProperty({ description: 'Patient full name' })
   @IsString()
   patientName: string;
 
-  @ApiProperty({ description: 'Patient email address' })
-  @IsEmail()
-  patientEmail: string;
+  @ApiProperty({ description: 'Patient email address', required: false })
+  @IsOptional()
+  @ValidateIf((o: CreatePatientBookingDto) =>
+    Boolean(
+      o.patientEmail &&
+        typeof o.patientEmail === 'string' &&
+        o.patientEmail.trim().length > 0,
+    ),
+  )
+  @IsEmail({}, { message: 'patientEmail must be a valid email address' })
+  patientEmail?: string;
 
   @ApiProperty({ description: 'Patient phone number' })
   @IsString()
@@ -27,6 +46,10 @@ export class CreatePatientBookingDto {
   @IsOptional()
   @IsString()
   patientLocation?: string;
+
+  @ApiProperty({ description: 'Patient type: New, Old, or OT', example: 'New' })
+  @IsString()
+  patientType: string;
 
   @ApiProperty({ description: 'Is this an old patient?', default: false })
   @IsOptional()

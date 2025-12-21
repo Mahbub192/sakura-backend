@@ -1,7 +1,13 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
-import { Doctor } from './doctor.entity';
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 import { Appointment } from './appointment.entity';
+import { Doctor } from './doctor.entity';
 
 export enum TokenAppointmentStatus {
   CONFIRMED = 'Confirmed',
@@ -21,8 +27,8 @@ export class TokenAppointment {
   @Column({ type: 'varchar' })
   patientName: string;
 
-  @ApiProperty({ description: 'Patient email' })
-  @Column({ type: 'varchar' })
+  @ApiProperty({ description: 'Patient email', required: false })
+  @Column({ type: 'varchar', nullable: true })
   patientEmail: string;
 
   @ApiProperty({ description: 'Patient phone number' })
@@ -40,6 +46,10 @@ export class TokenAppointment {
   @ApiProperty({ description: 'Patient location/address', required: false })
   @Column({ type: 'text', nullable: true })
   patientLocation: string;
+
+  @ApiProperty({ description: 'Patient type: New, Old, or OT', example: 'New' })
+  @Column({ type: 'varchar', default: 'New' })
+  patientType: string;
 
   @ApiProperty({ description: 'Is this an old patient?', default: false })
   @Column({ type: 'boolean', default: false })
@@ -78,7 +88,9 @@ export class TokenAppointment {
   doctorId: number;
 
   @ApiProperty({ type: () => Doctor, description: 'Associated doctor' })
-  @ManyToOne(() => Doctor, (doctor) => doctor.tokenAppointments, { eager: true })
+  @ManyToOne(() => Doctor, (doctor) => doctor.tokenAppointments, {
+    eager: true,
+  })
   @JoinColumn({ name: 'doctor_id' })
   doctor: Doctor;
 
@@ -86,8 +98,15 @@ export class TokenAppointment {
   @Column({ name: 'appointment_id' })
   appointmentId: number;
 
-  @ApiProperty({ type: () => Appointment, description: 'Associated appointment slot' })
-  @ManyToOne(() => Appointment, (appointment) => appointment.tokenAppointments, { eager: true })
+  @ApiProperty({
+    type: () => Appointment,
+    description: 'Associated appointment slot',
+  })
+  @ManyToOne(
+    () => Appointment,
+    (appointment) => appointment.tokenAppointments,
+    { eager: true },
+  )
   @JoinColumn({ name: 'appointment_id' })
   appointment: Appointment;
 
@@ -99,6 +118,3 @@ export class TokenAppointment {
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   updatedAt: Date;
 }
-
-
-
