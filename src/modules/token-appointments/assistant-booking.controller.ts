@@ -59,11 +59,18 @@ export class AssistantBookingController {
   @Roles(RoleType.ASSISTANT)
   @ApiOperation({ summary: 'Get available appointment slots for doctor' })
   @ApiResponse({ status: 200, description: 'Available slots retrieved' })
-  @ApiQuery({ name: 'doctorId', description: 'Doctor ID' })
-  @ApiQuery({ name: 'date', description: 'Date in YYYY-MM-DD format' })
-  async getAvailableSlots(@Query('doctorId') doctorId: string, @Query('date') date: string, @CurrentUser() user: any) {
+  @ApiQuery({ name: 'doctorId', description: 'Doctor ID', required: true })
+  @ApiQuery({ name: 'date', description: 'Date in YYYY-MM-DD format', required: true })
+  @ApiQuery({ name: 'clinicId', description: 'Clinic ID (optional)', required: false })
+  async getAvailableSlots(
+    @Query('doctorId') doctorId: string,
+    @Query('date') date: string,
+    @Query('clinicId') clinicId: string | undefined,
+    @CurrentUser() user: any,
+  ) {
     const assistant = await this.assistantsService.getAssistantByUserId(user.userId);
-    return this.assistantBookingService.getAvailableSlots(+doctorId, date, assistant.id);
+    const clinicIdNum = clinicId ? +clinicId : undefined;
+    return this.assistantBookingService.getAvailableSlots(+doctorId, date, assistant.id, clinicIdNum);
   }
 
   @Get('doctor-bookings')

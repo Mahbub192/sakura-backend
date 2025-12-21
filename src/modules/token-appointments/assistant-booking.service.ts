@@ -113,7 +113,7 @@ export class AssistantBookingService {
     return savedTokenAppointment;
   }
 
-  async getAvailableSlots(doctorId: number, date: string, assistantId: number): Promise<Appointment[]> {
+  async getAvailableSlots(doctorId: number, date: string, assistantId: number, clinicId?: number): Promise<Appointment[]> {
     // Verify assistant belongs to the doctor
     const assistant = await this.assistantRepository.findOne({
       where: { id: assistantId },
@@ -123,13 +123,24 @@ export class AssistantBookingService {
       throw new ForbiddenException('Assistant can only view slots for their assigned doctor');
     }
 
+    // Build where conditions
+    // Parse date string (YYYY-MM-DD) to Date object, ensuring timezone is handled correctly
+    const dateObj = new Date(date + 'T00:00:00.000Z'); // Add time to avoid timezone issues
+    
+    const whereConditions: any = {
+      doctorId,
+      date: dateObj,
+      status: AppointmentStatus.AVAILABLE,
+    };
+
+    // Add clinicId filter if provided
+    if (clinicId) {
+      whereConditions.clinicId = clinicId;
+    }
+
     // Get all appointments with basic conditions
     const appointments = await this.appointmentRepository.find({
-      where: {
-        doctorId,
-        date: new Date(date),
-        status: AppointmentStatus.AVAILABLE,
-      },
+      where: whereConditions,
       relations: ['clinic'],
       order: { startTime: 'ASC' },
     });
