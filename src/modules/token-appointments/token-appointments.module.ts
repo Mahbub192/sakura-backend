@@ -7,6 +7,7 @@ import { AssistantBookingController } from './assistant-booking.controller';
 import { AssistantBookingService } from './assistant-booking.service';
 import { DoctorBookingController } from './doctor-booking.controller';
 import { DoctorBookingService } from './doctor-booking.service';
+import { LivePatientsGateway } from './live-patients.gateway';
 import { TokenAppointmentsController } from './token-appointments.controller';
 import { TokenAppointmentsService } from './token-appointments.service';
 
@@ -17,7 +18,7 @@ import { TokenAppointmentsService } from './token-appointments.service';
     AssistantsModule,
   ],
   controllers: [TokenAppointmentsController, AssistantBookingController, DoctorBookingController],
-  providers: [TokenAppointmentsService, AssistantBookingService, DoctorBookingService],
+  providers: [TokenAppointmentsService, AssistantBookingService, DoctorBookingService, LivePatientsGateway],
   exports: [TokenAppointmentsService, AssistantBookingService, DoctorBookingService],
 })
 export class TokenAppointmentsModule {}

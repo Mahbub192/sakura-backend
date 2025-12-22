@@ -1,8 +1,9 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
-import { TokenAppointment, Appointment, Doctor, TokenAppointmentStatus, AppointmentStatus } from '../../entities';
+import { In, Repository } from 'typeorm';
+import { Appointment, AppointmentStatus, Doctor, TokenAppointment, TokenAppointmentStatus } from '../../entities';
 import { CreateTokenAppointmentDto } from './dto/create-token-appointment.dto';
+import { LivePatientsGateway } from './live-patients.gateway';
 
 @Injectable()
 export class TokenAppointmentsService {
@@ -13,6 +14,7 @@ export class TokenAppointmentsService {
     private appointmentRepository: Repository<Appointment>,
     @InjectRepository(Doctor)
     private doctorRepository: Repository<Doctor>,
+    private readonly livePatientsGateway: LivePatientsGateway,
   ) {}
 
   async create(createTokenAppointmentDto: CreateTokenAppointmentDto): Promise<TokenAppointment> {
@@ -66,6 +68,13 @@ export class TokenAppointmentsService {
     });
 
     const savedTokenAppointment = await this.tokenAppointmentRepository.save(tokenAppointment);
+
+    // Broadcast to live viewers
+    try {
+      this.livePatientsGateway.broadcastTokenUpdate(savedTokenAppointment as any);
+    } catch (err) {
+      // ignore
+    }
 
     // Update appointment slot booking count
     await this.updateAppointmentBookingCount(appointmentId, 1);
@@ -192,6 +201,13 @@ export class TokenAppointmentsService {
     if ((oldStatus === TokenAppointmentStatus.CONFIRMED || oldStatus === TokenAppointmentStatus.PENDING) && 
         status === TokenAppointmentStatus.CANCELLED) {
       await this.updateAppointmentBookingCount(tokenAppointment.appointmentId, -1);
+    }
+
+    // Broadcast status change
+    try {
+      this.livePatientsGateway.broadcastTokenUpdate(updatedAppointment as any);
+    } catch (err) {
+      // ignore
     }
 
     return updatedAppointment;
