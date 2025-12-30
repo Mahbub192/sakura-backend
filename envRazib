@@ -1,0 +1,19 @@
+# Database Configuration
+# Option 1: Use connection string (recommended for Neon, Railway, etc.)
+# DATABASE_URL=postgresql://user:password@host:port/database?sslmode=require
+
+# Option 2: Use individual parameters (for local PostgreSQL)
+DB_HOST=localhost
+DB_PORT=5432
+DB_USERNAME=sakurae1_Razib 
+DB_PASSWORD=Razib@Mahbub
+DB_NAME=sakurae1_doctor_appointment
+
+# JWT Configuration
+JWT_SECRET=doctor-appointment-super-secret-jwt-key-2024-change-in-production
+JWT_EXPIRES_IN=24h
+
+# Application Configuration
+PORT=443
+NODE_ENV=development
+3sBFiUee
