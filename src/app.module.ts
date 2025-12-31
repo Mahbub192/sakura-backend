@@ -104,7 +104,11 @@ import { UsersModule } from './modules/users/users.module';
           logging: !isProduction,
           // Enable SSL for Neon or production environments
           ssl:
-            databaseUrl || isProduction ? { rejectUnauthorized: false } : false,
+          databaseUrl
+          ? { rejectUnauthorized: false }
+          : process.env.DB_SSL === 'true'
+          ? { rejectUnauthorized: false }
+          : false,
         };
       },
       inject: [ConfigService],
