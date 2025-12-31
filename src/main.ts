@@ -103,8 +103,17 @@ async function ensureDatabaseExists() {
 }
 
 async function bootstrap() {
-  // Ensure database exists before creating the app
-  await ensureDatabaseExists();
+  // Load environment variables
+  const nodeEnv = process.env.NODE_ENV || 'development';
+  const isProduction = nodeEnv === 'production';
+  const autoSync = process.env.AUTO_SYNC_SCHEMA === 'true';
+  const autoSeed = process.env.AUTO_SEED === 'true';
+  const runInitialSetup = process.env.RUN_INITIAL_SETUP === 'true';
+
+  // Ensure database exists before creating the app (only in development)
+  if (!isProduction) {
+    await ensureDatabaseExists();
+  }
 
   const app = await NestFactory.create(AppModule);
 
@@ -120,12 +129,47 @@ async function bootstrap() {
     }),
   );
 
-  // Auto-seed database on startup (only if data doesn't exist)
   const configService = app.get(ConfigService);
-  const nodeEnv = configService.get<string>('nodeEnv') || 'development';
-  const isProduction = nodeEnv === 'production';
 
-  // Only auto-seed in development mode
+  // Production auto-sync warning
+  if (isProduction && autoSync) {
+    console.log('⚠️  AUTO_SYNC_SCHEMA is enabled - schema will be synced');
+    console.log('⚠️  Disable this after update to prevent data loss');
+  }
+
+  // Production initial setup (first deployment)
+  if (isProduction && runInitialSetup) {
+    try {
+      const seedService = app.get(SeedService);
+      console.log('🌱 Running initial production setup (tables + data)...');
+      await seedService.seed();
+      console.log('✅ Initial production setup completed');
+      console.log(
+        '⚠️  IMPORTANT: Set RUN_INITIAL_SETUP=false after first deployment',
+      );
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      console.error('❌ Initial setup failed:', errorMessage);
+    }
+  }
+
+  // Production auto-seed (when code is updated)
+  if (isProduction && autoSeed && !runInitialSetup) {
+    try {
+      const seedService = app.get(SeedService);
+      console.log('🌱 Running production seed (code update)...');
+      await seedService.seed();
+      console.log('✅ Production seeding completed');
+      console.log('⚠️  Consider setting AUTO_SEED=false after seeding');
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      console.warn('⚠️  Production seeding failed:', errorMessage);
+    }
+  }
+
+  // Development mode auto-seed
   if (!isProduction) {
     try {
       const seedService = app.get(SeedService);

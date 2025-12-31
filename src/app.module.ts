@@ -47,6 +47,14 @@ import { UsersModule } from './modules/users/users.module';
         const databaseUrl = configService.get<string>('database.url');
         const nodeEnv = configService.get<string>('nodeEnv') || 'development';
         const isProduction = nodeEnv === 'production';
+        const autoSync = process.env.AUTO_SYNC_SCHEMA === 'true';
+        const runInitialSetup = process.env.RUN_INITIAL_SETUP === 'true';
+
+        // Enable synchronize if:
+        // - Development mode (always)
+        // - Production with AUTO_SYNC_SCHEMA=true (for code updates)
+        // - Production with RUN_INITIAL_SETUP=true (first deployment)
+        const shouldSynchronize = !isProduction || autoSync || runInitialSetup;
 
         // If DATABASE_URL is provided (e.g., Neon, Railway), use it directly
         if (databaseUrl) {
@@ -64,7 +72,7 @@ import { UsersModule } from './modules/users/users.module';
               Message,
               MessageThread,
             ],
-            synchronize: !isProduction,
+            synchronize: shouldSynchronize,
             logging: !isProduction,
             ssl: { rejectUnauthorized: false }, // Neon requires SSL
           };
@@ -92,7 +100,7 @@ import { UsersModule } from './modules/users/users.module';
             Message,
             MessageThread,
           ],
-          synchronize: !isProduction,
+          synchronize: shouldSynchronize,
           logging: !isProduction,
           // Enable SSL for Neon or production environments
           ssl:
