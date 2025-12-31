@@ -1,4 +1,9 @@
-import { IsString, IsOptional, ValidateNested, IsBoolean } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  ValidateNested,
+  IsBoolean,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -43,7 +48,7 @@ export class ClinicInfoDto {
   @IsString()
   description?: string;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Operating hours for each day',
     type: 'object',
     additionalProperties: true,
@@ -55,7 +60,7 @@ export class ClinicInfoDto {
       friday: { start: '09:00', end: '17:00', closed: false },
       saturday: { start: '09:00', end: '17:00', closed: true },
       sunday: { start: '09:00', end: '17:00', closed: true },
-    }
+    },
   })
   @ValidateNested()
   @Type(() => OperatingHoursDto)
@@ -69,4 +74,3 @@ export class ClinicInfoDto {
     sunday: OperatingHoursDto;
   };
 }
-

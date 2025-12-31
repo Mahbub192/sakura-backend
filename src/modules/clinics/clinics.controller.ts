@@ -84,6 +84,3 @@ export class ClinicsController {
     return this.clinicsService.remove(+id);
   }
 }
-
-
-

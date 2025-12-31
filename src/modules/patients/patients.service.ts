@@ -1,7 +1,17 @@
-import { Injectable, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { TokenAppointment, Appointment, TokenAppointmentStatus, AppointmentStatus } from '../../entities';
+import {
+  TokenAppointment,
+  Appointment,
+  TokenAppointmentStatus,
+  AppointmentStatus,
+} from '../../entities';
 import { BookAppointmentDto } from './dto';
 
 @Injectable()
@@ -13,12 +23,27 @@ export class PatientsService {
     private appointmentRepository: Repository<Appointment>,
   ) {}
 
-  async bookAppointment(bookAppointmentDto: BookAppointmentDto, patientEmail: string): Promise<TokenAppointment> {
-    const { appointmentId, patientName, patientPhone, patientAge, patientGender, patientLocation, isOldPatient, reasonForVisit, notes } = bookAppointmentDto;
+  async bookAppointment(
+    bookAppointmentDto: BookAppointmentDto,
+    patientEmail: string,
+  ): Promise<TokenAppointment> {
+    const {
+      appointmentId,
+      patientName,
+      patientPhone,
+      patientAge,
+      patientGender,
+      patientLocation,
+      isOldPatient,
+      reasonForVisit,
+      notes,
+    } = bookAppointmentDto;
 
     // Validate email matches logged in patient
     if (bookAppointmentDto.patientEmail !== patientEmail) {
-      throw new ForbiddenException('Email mismatch. You can only book appointments for your own account.');
+      throw new ForbiddenException(
+        'Email mismatch. You can only book appointments for your own account.',
+      );
     }
 
     // Validate appointment slot exists and is available
@@ -50,15 +75,20 @@ export class PatientsService {
     });
 
     if (existingBooking) {
-      throw new ConflictException('You already have a confirmed appointment with this doctor on this date');
+      throw new ConflictException(
+        'You already have a confirmed appointment with this doctor on this date',
+      );
     }
 
     // Generate unique token number
-    const tokenNumber = await this.generateTokenNumber(appointment.doctorId, appointment.date);
+    const tokenNumber = await this.generateTokenNumber(
+      appointment.doctorId,
+      appointment.date,
+    );
 
     // Use the time from the request if provided, otherwise fall back to appointment start time
     const appointmentTime = bookAppointmentDto.time || appointment.startTime;
-    
+
     const tokenAppointment = this.tokenAppointmentRepository.create({
       patientName,
       patientEmail,
@@ -78,7 +108,8 @@ export class PatientsService {
       status: TokenAppointmentStatus.CONFIRMED,
     });
 
-    const savedTokenAppointment = await this.tokenAppointmentRepository.save(tokenAppointment);
+    const savedTokenAppointment =
+      await this.tokenAppointmentRepository.save(tokenAppointment);
 
     // Update appointment slot booking count
     await this.updateAppointmentBookingCount(appointmentId, 1);
@@ -94,7 +125,9 @@ export class PatientsService {
     });
   }
 
-  async getUpcomingAppointments(patientEmail: string): Promise<TokenAppointment[]> {
+  async getUpcomingAppointments(
+    patientEmail: string,
+  ): Promise<TokenAppointment[]> {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -108,7 +141,10 @@ export class PatientsService {
     });
   }
 
-  async getAppointmentById(id: number, patientEmail: string): Promise<TokenAppointment> {
+  async getAppointmentById(
+    id: number,
+    patientEmail: string,
+  ): Promise<TokenAppointment> {
     const appointment = await this.tokenAppointmentRepository.findOne({
       where: { id },
       relations: ['doctor', 'doctor.user', 'appointment', 'appointment.clinic'],
@@ -125,7 +161,10 @@ export class PatientsService {
     return appointment;
   }
 
-  async cancelAppointment(id: number, patientEmail: string): Promise<TokenAppointment> {
+  async cancelAppointment(
+    id: number,
+    patientEmail: string,
+  ): Promise<TokenAppointment> {
     const appointment = await this.getAppointmentById(id, patientEmail);
 
     if (appointment.status === TokenAppointmentStatus.CANCELLED) {
@@ -138,7 +177,8 @@ export class PatientsService {
 
     // Update status to cancelled
     appointment.status = TokenAppointmentStatus.CANCELLED;
-    const updatedAppointment = await this.tokenAppointmentRepository.save(appointment);
+    const updatedAppointment =
+      await this.tokenAppointmentRepository.save(appointment);
 
     // Decrement the booking count
     await this.updateAppointmentBookingCount(appointment.appointmentId, -1);
@@ -146,7 +186,10 @@ export class PatientsService {
     return updatedAppointment;
   }
 
-  async getAppointmentHistory(patientEmail: string, limit: number = 10): Promise<TokenAppointment[]> {
+  async getAppointmentHistory(
+    patientEmail: string,
+    limit: number = 10,
+  ): Promise<TokenAppointment[]> {
     return this.tokenAppointmentRepository.find({
       where: { patientEmail },
       relations: ['doctor', 'doctor.user', 'appointment', 'appointment.clinic'],
@@ -155,9 +198,15 @@ export class PatientsService {
     });
   }
 
-  private async generateTokenNumber(doctorId: number, date: Date): Promise<string> {
-    const dateStr = new Date(date).toISOString().split('T')[0].replace(/-/g, '');
-    
+  private async generateTokenNumber(
+    doctorId: number,
+    date: Date,
+  ): Promise<string> {
+    const dateStr = new Date(date)
+      .toISOString()
+      .split('T')[0]
+      .replace(/-/g, '');
+
     // Count existing appointments for this doctor on this date
     const count = await this.tokenAppointmentRepository.count({
       where: {
@@ -169,11 +218,19 @@ export class PatientsService {
     return `TKN${doctorId}${dateStr}${(count + 1).toString().padStart(3, '0')}`;
   }
 
-  private async updateAppointmentBookingCount(appointmentId: number, increment: number): Promise<void> {
-    const appointment = await this.appointmentRepository.findOne({ where: { id: appointmentId } });
+  private async updateAppointmentBookingCount(
+    appointmentId: number,
+    increment: number,
+  ): Promise<void> {
+    const appointment = await this.appointmentRepository.findOne({
+      where: { id: appointmentId },
+    });
     if (appointment) {
-      appointment.currentBookings = Math.max(0, appointment.currentBookings + increment);
-      
+      appointment.currentBookings = Math.max(
+        0,
+        appointment.currentBookings + increment,
+      );
+
       // Update status based on booking count
       if (appointment.currentBookings >= appointment.maxPatients) {
         appointment.status = AppointmentStatus.BOOKED;
@@ -182,9 +239,8 @@ export class PatientsService {
       } else {
         appointment.status = AppointmentStatus.AVAILABLE;
       }
-      
+
       await this.appointmentRepository.save(appointment);
     }
   }
 }
-

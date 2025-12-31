@@ -1,33 +1,39 @@
 import {
-  Controller,
-  Get,
-  Post,
   Body,
-  Patch,
-  Param,
+  Controller,
   Delete,
-  UseGuards,
-  Query,
   ForbiddenException,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
 } from '@nestjs/common';
 import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
   ApiBearerAuth,
+  ApiOperation,
   ApiParam,
   ApiQuery,
+  ApiResponse,
+  ApiTags,
 } from '@nestjs/swagger';
-import { AppointmentsService } from './appointments.service';
-import { CreateAppointmentDto } from './dto/create-appointment.dto';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
-import { Roles } from '../../common/decorators/roles.decorator';
-import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { RoleType } from '../../entities/role.entity';
 import { AppointmentStatus } from '../../entities/appointment.entity';
-import { DoctorsService } from '../doctors/doctors.service';
+import { RoleType } from '../../entities/role.entity';
 import { AssistantsService } from '../assistants/assistants.service';
+import { DoctorsService } from '../doctors/doctors.service';
+import { AppointmentsService } from './appointments.service';
+import { CreateAppointmentDto } from './dto/create-appointment.dto';
+
+interface CurrentUserPayload {
+  userId: string; // Phone number (primary key)
+  email: string;
+  role: RoleType;
+}
 
 @ApiTags('Appointments')
 @Controller('appointments')
@@ -44,7 +50,10 @@ export class AppointmentsController {
   @UseGuards(RolesGuard)
   @Roles(RoleType.ADMIN, RoleType.DOCTOR)
   @ApiOperation({ summary: 'Create a new appointment slot' })
-  @ApiResponse({ status: 201, description: 'Appointment slot created successfully' })
+  @ApiResponse({
+    status: 201,
+    description: 'Appointment slot created successfully',
+  })
   @ApiResponse({ status: 409, description: 'Conflicting appointment time' })
   create(@Body() createAppointmentDto: CreateAppointmentDto) {
     return this.appointmentsService.create(createAppointmentDto);
@@ -53,14 +62,26 @@ export class AppointmentsController {
   @Get()
   @ApiOperation({ summary: 'Get all appointment slots' })
   @ApiResponse({ status: 200, description: 'List of all appointment slots' })
-  @ApiQuery({ name: 'doctorId', required: false, description: 'Filter by doctor ID' })
-  @ApiQuery({ name: 'startDate', required: false, description: 'Start date for date range filter (YYYY-MM-DD)' })
-  @ApiQuery({ name: 'endDate', required: false, description: 'End date for date range filter (YYYY-MM-DD)' })
+  @ApiQuery({
+    name: 'doctorId',
+    required: false,
+    description: 'Filter by doctor ID',
+  })
+  @ApiQuery({
+    name: 'startDate',
+    required: false,
+    description: 'Start date for date range filter (YYYY-MM-DD)',
+  })
+  @ApiQuery({
+    name: 'endDate',
+    required: false,
+    description: 'End date for date range filter (YYYY-MM-DD)',
+  })
   async findAll(
     @Query('doctorId') doctorId?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
-    @CurrentUser() user?: any,
+    @CurrentUser() user?: CurrentUserPayload,
   ) {
     // If user is a doctor, automatically filter by their doctor ID
     if (user && user.role === RoleType.DOCTOR) {
@@ -69,7 +90,7 @@ export class AppointmentsController {
         if (doctor) {
           return this.appointmentsService.findByDoctor(doctor.id);
         }
-      } catch (error) {
+      } catch {
         // If doctor profile doesn't exist, return empty array
         return [];
       }
@@ -78,11 +99,13 @@ export class AppointmentsController {
     // If user is an assistant, automatically filter by their assigned doctor ID
     if (user && user.role === RoleType.ASSISTANT) {
       try {
-        const assistant = await this.assistantsService.getAssistantByUserId(user.userId);
+        const assistant = await this.assistantsService.getAssistantByUserId(
+          user.userId,
+        );
         if (assistant) {
           return this.appointmentsService.findByDoctor(assistant.doctorId);
         }
-      } catch (error) {
+      } catch {
         // If assistant profile doesn't exist, return empty array
         return [];
       }
@@ -91,34 +114,53 @@ export class AppointmentsController {
     if (doctorId) {
       return this.appointmentsService.findByDoctor(+doctorId);
     }
-    
+
     if (startDate && endDate) {
       return this.appointmentsService.findByDateRange(startDate, endDate);
     }
-    
+
     return this.appointmentsService.findAll();
   }
 
   @Get('available')
   @ApiOperation({ summary: 'Get available appointment slots' })
-  @ApiResponse({ status: 200, description: 'List of available appointment slots' })
-  @ApiQuery({ name: 'doctorId', required: false, description: 'Filter by doctor ID' })
-  @ApiQuery({ name: 'date', required: false, description: 'Filter by specific date (YYYY-MM-DD)' })
-  @ApiQuery({ name: 'clinicId', required: false, description: 'Filter by clinic ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of available appointment slots',
+  })
+  @ApiQuery({
+    name: 'doctorId',
+    required: false,
+    description: 'Filter by doctor ID',
+  })
+  @ApiQuery({
+    name: 'date',
+    required: false,
+    description: 'Filter by specific date (YYYY-MM-DD)',
+  })
+  @ApiQuery({
+    name: 'clinicId',
+    required: false,
+    description: 'Filter by clinic ID',
+  })
   async findAvailable(
     @Query('doctorId') doctorId?: string,
     @Query('date') date?: string,
     @Query('clinicId') clinicId?: string,
-    @CurrentUser() user?: any,
+    @CurrentUser() user?: CurrentUserPayload,
   ) {
     // If user is a doctor, automatically filter by their doctor ID
     if (user && user.role === RoleType.DOCTOR && !doctorId) {
       try {
         const doctor = await this.doctorsService.findByUserId(user.userId);
         if (doctor) {
-          return this.appointmentsService.findAvailableSlots(doctor.id, date, clinicId ? +clinicId : undefined);
+          return this.appointmentsService.findAvailableSlots(
+            doctor.id,
+            date,
+            clinicId ? +clinicId : undefined,
+          );
         }
-      } catch (error) {
+      } catch {
         // If doctor profile doesn't exist, return empty array
         return [];
       }
@@ -127,11 +169,17 @@ export class AppointmentsController {
     // If user is an assistant, automatically filter by their assigned doctor ID
     if (user && user.role === RoleType.ASSISTANT && !doctorId) {
       try {
-        const assistant = await this.assistantsService.getAssistantByUserId(user.userId);
+        const assistant = await this.assistantsService.getAssistantByUserId(
+          user.userId,
+        );
         if (assistant) {
-          return this.appointmentsService.findAvailableSlots(assistant.doctorId, date, clinicId ? +clinicId : undefined);
+          return this.appointmentsService.findAvailableSlots(
+            assistant.doctorId,
+            date,
+            clinicId ? +clinicId : undefined,
+          );
         }
-      } catch (error) {
+      } catch {
         // If assistant profile doesn't exist, return empty array
         return [];
       }
@@ -148,17 +196,28 @@ export class AppointmentsController {
   @ApiOperation({ summary: 'Get appointment slot by ID' })
   @ApiResponse({ status: 200, description: 'Appointment slot found' })
   @ApiResponse({ status: 404, description: 'Appointment slot not found' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Assistant can only view their doctor\'s appointments' })
+  @ApiResponse({
+    status: 403,
+    description:
+      "Forbidden - Assistant can only view their doctor's appointments",
+  })
   @ApiParam({ name: 'id', description: 'Appointment ID' })
-  async findOne(@Param('id') id: string, @CurrentUser() user?: any) {
+  async findOne(
+    @Param('id') id: string,
+    @CurrentUser() user?: CurrentUserPayload,
+  ) {
     const appointment = await this.appointmentsService.findOne(+id);
-    
+
     // If user is an assistant, verify they can view this appointment
     if (user && user.role === RoleType.ASSISTANT) {
       try {
-        const assistant = await this.assistantsService.getAssistantByUserId(user.userId);
+        const assistant = await this.assistantsService.getAssistantByUserId(
+          user.userId,
+        );
         if (assistant && appointment.doctorId !== assistant.doctorId) {
-          throw new ForbiddenException('Assistant can only view appointments for their assigned doctor');
+          throw new ForbiddenException(
+            'Assistant can only view appointments for their assigned doctor',
+          );
         }
       } catch (error) {
         if (error instanceof ForbiddenException) {
@@ -167,7 +226,7 @@ export class AppointmentsController {
         // If assistant profile doesn't exist, allow access (will be handled by service)
       }
     }
-    
+
     return appointment;
   }
 
@@ -191,12 +250,12 @@ export class AppointmentsController {
   @ApiOperation({ summary: 'Delete appointment slot' })
   @ApiResponse({ status: 200, description: 'Appointment slot deleted' })
   @ApiResponse({ status: 404, description: 'Appointment slot not found' })
-  @ApiResponse({ status: 409, description: 'Cannot delete appointment with existing bookings' })
+  @ApiResponse({
+    status: 409,
+    description: 'Cannot delete appointment with existing bookings',
+  })
   @ApiParam({ name: 'id', description: 'Appointment ID' })
   remove(@Param('id') id: string) {
     return this.appointmentsService.remove(+id);
   }
 }
-
-
-

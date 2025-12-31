@@ -1,6 +1,11 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Appointment, Assistant, Doctor, TokenAppointment } from '../../entities';
+import {
+  Appointment,
+  Assistant,
+  Doctor,
+  TokenAppointment,
+} from '../../entities';
 import { AssistantsModule } from '../assistants/assistants.module';
 import { DoctorsModule } from '../doctors/doctors.module';
 import { AssistantBookingController } from './assistant-booking.controller';
@@ -13,15 +18,30 @@ import { TokenAppointmentsService } from './token-appointments.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([TokenAppointment, Appointment, Doctor, Assistant]),
+    TypeOrmModule.forFeature([
+      TokenAppointment,
+      Appointment,
+      Doctor,
+      Assistant,
+    ]),
     DoctorsModule,
     AssistantsModule,
   ],
-  controllers: [TokenAppointmentsController, AssistantBookingController, DoctorBookingController],
-  providers: [TokenAppointmentsService, AssistantBookingService, DoctorBookingService, LivePatientsGateway],
-  exports: [TokenAppointmentsService, AssistantBookingService, DoctorBookingService],
+  controllers: [
+    TokenAppointmentsController,
+    AssistantBookingController,
+    DoctorBookingController,
+  ],
+  providers: [
+    TokenAppointmentsService,
+    AssistantBookingService,
+    DoctorBookingService,
+    LivePatientsGateway,
+  ],
+  exports: [
+    TokenAppointmentsService,
+    AssistantBookingService,
+    DoctorBookingService,
+  ],
 })
 export class TokenAppointmentsModule {}
-
-
-

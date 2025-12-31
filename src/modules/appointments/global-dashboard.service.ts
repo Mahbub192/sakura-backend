@@ -1,7 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between } from 'typeorm';
-import { TokenAppointment, Appointment, Doctor, TokenAppointmentStatus } from '../../entities';
+import { Between, Repository } from 'typeorm';
+import {
+  Appointment,
+  Doctor,
+  TokenAppointment,
+  TokenAppointmentStatus,
+} from '../../entities';
 
 export interface GlobalDashboardStats {
   totalDoctors: number;
@@ -48,8 +53,19 @@ export class GlobalDashboardService {
 
   async getGlobalStats(): Promise<GlobalDashboardStats> {
     const today = new Date();
-    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
+    const startOfDay = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate(),
+    );
+    const endOfDay = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate(),
+      23,
+      59,
+      59,
+    );
 
     // Get total doctors
     const totalDoctors = await this.doctorRepository.count();
@@ -69,7 +85,9 @@ export class GlobalDashboardService {
       select: ['patientEmail', 'doctorFee'],
     });
 
-    const uniquePatients = new Set(todayAppointments.map(app => app.patientEmail));
+    const uniquePatients = new Set(
+      todayAppointments.map((app) => app.patientEmail),
+    );
     const totalPatientsToday = uniquePatients.size;
 
     // Get status-wise counts
@@ -102,15 +120,19 @@ export class GlobalDashboardService {
     });
 
     // Calculate total revenue (completed appointments only)
-    const completedTodayAppointments = await this.tokenAppointmentRepository.find({
-      where: {
-        date: Between(startOfDay, endOfDay),
-        status: TokenAppointmentStatus.COMPLETED,
-      },
-      select: ['doctorFee'],
-    });
+    const completedTodayAppointments =
+      await this.tokenAppointmentRepository.find({
+        where: {
+          date: Between(startOfDay, endOfDay),
+          status: TokenAppointmentStatus.COMPLETED,
+        },
+        select: ['doctorFee'],
+      });
 
-    const totalRevenue = completedTodayAppointments.reduce((sum, app) => sum + Number(app.doctorFee), 0);
+    const totalRevenue = completedTodayAppointments.reduce(
+      (sum, app) => sum + Number(app.doctorFee),
+      0,
+    );
 
     return {
       totalDoctors,
@@ -126,20 +148,34 @@ export class GlobalDashboardService {
 
   async getTodayAllAppointments(): Promise<TodayGlobalAppointment[]> {
     const today = new Date();
-    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
+    const startOfDay = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate(),
+    );
+    const endOfDay = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate(),
+      23,
+      59,
+      59,
+    );
 
     const appointments = await this.tokenAppointmentRepository
       .createQueryBuilder('token_appointment')
       .leftJoinAndSelect('token_appointment.doctor', 'doctor')
       .leftJoinAndSelect('token_appointment.appointment', 'appointment')
       .leftJoinAndSelect('appointment.clinic', 'clinic')
-      .where('token_appointment.date BETWEEN :startOfDay AND :endOfDay', { startOfDay, endOfDay })
+      .where('token_appointment.date BETWEEN :startOfDay AND :endOfDay', {
+        startOfDay,
+        endOfDay,
+      })
       .orderBy('token_appointment.time', 'ASC')
       .addOrderBy('doctor.name', 'ASC')
       .getMany();
 
-    return appointments.map(appointment => ({
+    return appointments.map((appointment) => ({
       id: appointment.id,
       patientName: appointment.patientName,
       patientPhone: appointment.patientPhone,
@@ -161,7 +197,10 @@ export class GlobalDashboardService {
     }));
   }
 
-  async getAppointmentsByDateRange(startDate: string, endDate: string): Promise<TodayGlobalAppointment[]> {
+  async getAppointmentsByDateRange(
+    startDate: string,
+    endDate: string,
+  ): Promise<TodayGlobalAppointment[]> {
     const start = new Date(startDate);
     const end = new Date(endDate + 'T23:59:59');
 
@@ -176,7 +215,7 @@ export class GlobalDashboardService {
       .addOrderBy('doctor.name', 'ASC')
       .getMany();
 
-    return appointments.map(appointment => ({
+    return appointments.map((appointment) => ({
       id: appointment.id,
       patientName: appointment.patientName,
       patientPhone: appointment.patientPhone,
@@ -200,10 +239,32 @@ export class GlobalDashboardService {
 
   async getDoctorWiseStats(date?: string): Promise<any[]> {
     const targetDate = date ? new Date(date) : new Date();
-    const startOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
-    const endOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 23, 59, 59);
+    const startOfDay = new Date(
+      targetDate.getFullYear(),
+      targetDate.getMonth(),
+      targetDate.getDate(),
+    );
+    const endOfDay = new Date(
+      targetDate.getFullYear(),
+      targetDate.getMonth(),
+      targetDate.getDate(),
+      23,
+      59,
+      59,
+    );
 
-    const doctorStats = await this.tokenAppointmentRepository
+    interface RawDoctorStat {
+      doctorid: number;
+      doctorname: string;
+      specialization: string;
+      totalappointments: string;
+      confirmedappointments: string;
+      completedappointments: string;
+      cancelledappointments: string;
+      totalrevenue: string | null;
+    }
+
+    const rawResults = await this.tokenAppointmentRepository
       .createQueryBuilder('token_appointment')
       .leftJoinAndSelect('token_appointment.doctor', 'doctor')
       .select([
@@ -211,17 +272,22 @@ export class GlobalDashboardService {
         'doctor.name as doctorName',
         'doctor.specialization as specialization',
         'COUNT(token_appointment.id) as totalAppointments',
-        'COUNT(CASE WHEN token_appointment.status = \'Confirmed\' THEN 1 END) as confirmedAppointments',
-        'COUNT(CASE WHEN token_appointment.status = \'Completed\' THEN 1 END) as completedAppointments',
-        'COUNT(CASE WHEN token_appointment.status = \'Cancelled\' THEN 1 END) as cancelledAppointments',
-        'SUM(CASE WHEN token_appointment.status = \'Completed\' THEN token_appointment.doctorFee ELSE 0 END) as totalRevenue',
+        "COUNT(CASE WHEN token_appointment.status = 'Confirmed' THEN 1 END) as confirmedAppointments",
+        "COUNT(CASE WHEN token_appointment.status = 'Completed' THEN 1 END) as completedAppointments",
+        "COUNT(CASE WHEN token_appointment.status = 'Cancelled' THEN 1 END) as cancelledAppointments",
+        "SUM(CASE WHEN token_appointment.status = 'Completed' THEN token_appointment.doctorFee ELSE 0 END) as totalRevenue",
       ])
-      .where('token_appointment.date BETWEEN :startOfDay AND :endOfDay', { startOfDay, endOfDay })
+      .where('token_appointment.date BETWEEN :startOfDay AND :endOfDay', {
+        startOfDay,
+        endOfDay,
+      })
       .groupBy('doctor.id, doctor.name, doctor.specialization')
       .orderBy('totalAppointments', 'DESC')
       .getRawMany();
 
-    return doctorStats.map(stat => ({
+    const doctorStats: RawDoctorStat[] = rawResults as RawDoctorStat[];
+
+    return doctorStats.map((stat) => ({
       doctorId: stat.doctorid,
       doctorName: stat.doctorname,
       specialization: stat.specialization,
@@ -229,11 +295,14 @@ export class GlobalDashboardService {
       confirmedAppointments: parseInt(stat.confirmedappointments),
       completedAppointments: parseInt(stat.completedappointments),
       cancelledAppointments: parseInt(stat.cancelledappointments),
-      totalRevenue: parseFloat(stat.totalrevenue) || 0,
+      totalRevenue: parseFloat(stat.totalrevenue || '0') || 0,
     }));
   }
 
-  async searchGlobalAppointments(searchTerm: string, date?: string): Promise<TodayGlobalAppointment[]> {
+  async searchGlobalAppointments(
+    searchTerm: string,
+    date?: string,
+  ): Promise<TodayGlobalAppointment[]> {
     let query = this.tokenAppointmentRepository
       .createQueryBuilder('token_appointment')
       .leftJoinAndSelect('token_appointment.doctor', 'doctor')
@@ -241,14 +310,28 @@ export class GlobalDashboardService {
       .leftJoinAndSelect('appointment.clinic', 'clinic')
       .where(
         '(token_appointment.patientName ILIKE :search OR token_appointment.patientPhone ILIKE :search OR token_appointment.patientEmail ILIKE :search OR token_appointment.tokenNumber ILIKE :search OR doctor.name ILIKE :search)',
-        { search: `%${searchTerm}%` }
+        { search: `%${searchTerm}%` },
       );
 
     if (date) {
       const targetDate = new Date(date);
-      const startOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
-      const endOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 23, 59, 59);
-      query = query.andWhere('token_appointment.date BETWEEN :startOfDay AND :endOfDay', { startOfDay, endOfDay });
+      const startOfDay = new Date(
+        targetDate.getFullYear(),
+        targetDate.getMonth(),
+        targetDate.getDate(),
+      );
+      const endOfDay = new Date(
+        targetDate.getFullYear(),
+        targetDate.getMonth(),
+        targetDate.getDate(),
+        23,
+        59,
+        59,
+      );
+      query = query.andWhere(
+        'token_appointment.date BETWEEN :startOfDay AND :endOfDay',
+        { startOfDay, endOfDay },
+      );
     }
 
     const appointments = await query
@@ -256,7 +339,7 @@ export class GlobalDashboardService {
       .addOrderBy('token_appointment.time', 'ASC')
       .getMany();
 
-    return appointments.map(appointment => ({
+    return appointments.map((appointment) => ({
       id: appointment.id,
       patientName: appointment.patientName,
       patientPhone: appointment.patientPhone,

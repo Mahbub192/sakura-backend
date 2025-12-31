@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
 import { Appointment, Doctor, Clinic, AppointmentStatus } from '../../entities';
@@ -15,17 +20,31 @@ export class AppointmentsService {
     private clinicRepository: Repository<Clinic>,
   ) {}
 
-  async create(createAppointmentDto: CreateAppointmentDto): Promise<Appointment> {
-    const { doctorId, clinicId, date, startTime, endTime, duration, maxPatients = 1 } = createAppointmentDto;
+  async create(
+    createAppointmentDto: CreateAppointmentDto,
+  ): Promise<Appointment> {
+    const {
+      doctorId,
+      clinicId,
+      date,
+      startTime,
+      endTime,
+      duration,
+      maxPatients = 1,
+    } = createAppointmentDto;
 
     // Validate doctor exists
-    const doctor = await this.doctorRepository.findOne({ where: { id: doctorId } });
+    const doctor = await this.doctorRepository.findOne({
+      where: { id: doctorId },
+    });
     if (!doctor) {
       throw new NotFoundException('Doctor not found');
     }
 
     // Validate clinic exists
-    const clinic = await this.clinicRepository.findOne({ where: { id: clinicId } });
+    const clinic = await this.clinicRepository.findOne({
+      where: { id: clinicId },
+    });
     if (!clinic) {
       throw new NotFoundException('Clinic not found');
     }
@@ -53,7 +72,7 @@ export class AppointmentsService {
     const newEndMinutes = timeToMinutes(endTime);
 
     // Check for overlaps
-    const hasOverlap = existingAppointments.some(existing => {
+    const hasOverlap = existingAppointments.some((existing) => {
       const existingStartMinutes = timeToMinutes(existing.startTime);
       const existingEndMinutes = timeToMinutes(existing.endTime);
 
@@ -63,14 +82,19 @@ export class AppointmentsService {
       // 2. New end time is within existing slot: existingStartMinutes < newEndMinutes <= existingEndMinutes
       // 3. New slot completely covers existing slot: newStartMinutes <= existingStartMinutes && newEndMinutes >= existingEndMinutes
       return (
-        (newStartMinutes >= existingStartMinutes && newStartMinutes < existingEndMinutes) ||
-        (newEndMinutes > existingStartMinutes && newEndMinutes <= existingEndMinutes) ||
-        (newStartMinutes <= existingStartMinutes && newEndMinutes >= existingEndMinutes)
+        (newStartMinutes >= existingStartMinutes &&
+          newStartMinutes < existingEndMinutes) ||
+        (newEndMinutes > existingStartMinutes &&
+          newEndMinutes <= existingEndMinutes) ||
+        (newStartMinutes <= existingStartMinutes &&
+          newEndMinutes >= existingEndMinutes)
       );
     });
 
     if (hasOverlap) {
-      throw new ConflictException('Doctor has conflicting appointment at this time');
+      throw new ConflictException(
+        'Doctor has conflicting appointment at this time',
+      );
     }
 
     const appointment = this.appointmentRepository.create({
@@ -116,7 +140,10 @@ export class AppointmentsService {
     });
   }
 
-  async findByDateRange(startDate: string, endDate: string): Promise<Appointment[]> {
+  async findByDateRange(
+    startDate: string,
+    endDate: string,
+  ): Promise<Appointment[]> {
     return this.appointmentRepository.find({
       where: {
         date: Between(new Date(startDate), new Date(endDate)),
@@ -126,13 +153,24 @@ export class AppointmentsService {
     });
   }
 
-  async findAvailableSlots(doctorId?: number, date?: string, clinicId?: number): Promise<Appointment[]> {
-    console.log('findAvailableSlots called with:', { doctorId, date, clinicId });
-    
-    const queryBuilder = this.appointmentRepository.createQueryBuilder('appointment')
+  async findAvailableSlots(
+    doctorId?: number,
+    date?: string,
+    clinicId?: number,
+  ): Promise<Appointment[]> {
+    console.log('findAvailableSlots called with:', {
+      doctorId,
+      date,
+      clinicId,
+    });
+
+    const queryBuilder = this.appointmentRepository
+      .createQueryBuilder('appointment')
       .leftJoinAndSelect('appointment.doctor', 'doctor')
       .leftJoinAndSelect('appointment.clinic', 'clinic')
-      .where('appointment.status = :status', { status: AppointmentStatus.AVAILABLE })
+      .where('appointment.status = :status', {
+        status: AppointmentStatus.AVAILABLE,
+      })
       .andWhere('appointment.currentBookings < appointment.maxPatients');
 
     if (doctorId) {
@@ -143,16 +181,17 @@ export class AppointmentsService {
       // Extract date part from input (handle both YYYY-MM-DD and ISO strings)
       const dateStr = date.split('T')[0]; // Handle ISO strings - format: YYYY-MM-DD
       console.log('Filtering by date:', dateStr);
-      
+
       // Convert to date object for comparison (PostgreSQL date type)
       const targetDate = new Date(dateStr);
       targetDate.setHours(0, 0, 0, 0);
       const nextDay = new Date(targetDate);
       nextDay.setDate(nextDay.getDate() + 1);
-      
+
       // Use range comparison for date (includes whole day)
-      queryBuilder.andWhere('appointment.date >= :startDate', { startDate: targetDate })
-                   .andWhere('appointment.date < :endDate', { endDate: nextDay });
+      queryBuilder
+        .andWhere('appointment.date >= :startDate', { startDate: targetDate })
+        .andWhere('appointment.date < :endDate', { endDate: nextDay });
     } else {
       // Only show future or today's appointments if no date filter
       const today = new Date();
@@ -165,8 +204,9 @@ export class AppointmentsService {
       queryBuilder.andWhere('appointment.clinicId = :clinicId', { clinicId });
     }
 
-    queryBuilder.orderBy('appointment.date', 'ASC')
-                .addOrderBy('appointment.startTime', 'ASC');
+    queryBuilder
+      .orderBy('appointment.date', 'ASC')
+      .addOrderBy('appointment.startTime', 'ASC');
 
     const sql = queryBuilder.getSql();
     const params = queryBuilder.getParameters();
@@ -175,11 +215,14 @@ export class AppointmentsService {
 
     const results = await queryBuilder.getMany();
     console.log(`Found ${results.length} available slots`);
-    
+
     return results;
   }
 
-  async updateStatus(id: number, status: AppointmentStatus): Promise<Appointment> {
+  async updateStatus(
+    id: number,
+    status: AppointmentStatus,
+  ): Promise<Appointment> {
     const appointment = await this.findOne(id);
     appointment.status = status;
     return this.appointmentRepository.save(appointment);
@@ -187,13 +230,13 @@ export class AppointmentsService {
 
   async incrementBooking(id: number): Promise<Appointment> {
     const appointment = await this.findOne(id);
-    
+
     if (appointment.currentBookings >= appointment.maxPatients) {
       throw new ConflictException('Appointment slot is fully booked');
     }
 
     appointment.currentBookings += 1;
-    
+
     if (appointment.currentBookings >= appointment.maxPatients) {
       appointment.status = AppointmentStatus.BOOKED;
     }
@@ -203,11 +246,14 @@ export class AppointmentsService {
 
   async decrementBooking(id: number): Promise<Appointment> {
     const appointment = await this.findOne(id);
-    
+
     if (appointment.currentBookings > 0) {
       appointment.currentBookings -= 1;
-      
-      if (appointment.currentBookings < appointment.maxPatients && appointment.status === AppointmentStatus.BOOKED) {
+
+      if (
+        appointment.currentBookings < appointment.maxPatients &&
+        appointment.status === AppointmentStatus.BOOKED
+      ) {
         appointment.status = AppointmentStatus.AVAILABLE;
       }
     }
@@ -217,14 +263,13 @@ export class AppointmentsService {
 
   async remove(id: number): Promise<void> {
     const appointment = await this.findOne(id);
-    
+
     if (appointment.currentBookings > 0) {
-      throw new ConflictException('Cannot delete appointment with existing bookings');
+      throw new ConflictException(
+        'Cannot delete appointment with existing bookings',
+      );
     }
 
     await this.appointmentRepository.remove(appointment);
   }
 }
-
-
-

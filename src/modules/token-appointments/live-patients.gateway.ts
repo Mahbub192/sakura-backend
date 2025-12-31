@@ -1,14 +1,17 @@
 import { Logger } from '@nestjs/common';
 import {
-    ConnectedSocket,
-    MessageBody,
-    OnGatewayConnection,
-    OnGatewayDisconnect,
-    SubscribeMessage,
-    WebSocketGateway,
-    WebSocketServer,
+  ConnectedSocket,
+  MessageBody,
+  OnGatewayConnection,
+  OnGatewayDisconnect,
+  SubscribeMessage,
+  WebSocketGateway,
+  WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
+import { Appointment } from '../../entities/appointment.entity';
+import { Clinic } from '../../entities/clinic.entity';
+import { TokenAppointment } from '../../entities/token-appointment.entity';
 
 type LiveSocket = Socket & {
   joinedRooms?: Set<string>;
@@ -21,7 +24,9 @@ type LiveSocket = Socket & {
     credentials: true,
   },
 })
-export class LivePatientsGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class LivePatientsGateway
+  implements OnGatewayConnection, OnGatewayDisconnect
+{
   @WebSocketServer()
   server: Server;
 
@@ -39,7 +44,10 @@ export class LivePatientsGateway implements OnGatewayConnection, OnGatewayDiscon
   }
 
   @SubscribeMessage('join')
-  handleJoin(@MessageBody() data: { clinicId?: number; doctorId?: number }, @ConnectedSocket() client: LiveSocket) {
+  handleJoin(
+    @MessageBody() data: { clinicId?: number; doctorId?: number },
+    @ConnectedSocket() client: LiveSocket,
+  ) {
     try {
       if (data?.clinicId) {
         const room = `clinic:${data.clinicId}`;
@@ -59,7 +67,16 @@ export class LivePatientsGateway implements OnGatewayConnection, OnGatewayDiscon
   }
 
   @SubscribeMessage('control')
-  handleControl(@MessageBody() data: { action: string; clinicId?: number; doctorId?: number; currentIndex?: number }, @ConnectedSocket() client: LiveSocket) {
+  handleControl(
+    @MessageBody()
+    data: {
+      action: string;
+      clinicId?: number;
+      doctorId?: number;
+      currentIndex?: number;
+    },
+    @ConnectedSocket() client: LiveSocket,
+  ) {
     try {
       const clinicRoom = data.clinicId ? `clinic:${data.clinicId}` : null;
       const doctorRoom = data.doctorId ? `doctor:${data.doctorId}` : null;
@@ -74,7 +91,11 @@ export class LivePatientsGateway implements OnGatewayConnection, OnGatewayDiscon
   }
 
   // Called by server-side services to broadcast updates
-  broadcastTokenUpdate(tokenAppointment: any) {
+  broadcastTokenUpdate(
+    tokenAppointment: TokenAppointment & {
+      appointment?: (Appointment & { clinic?: Clinic }) | null;
+    },
+  ) {
     try {
       const clinicRoom = `clinic:${tokenAppointment.appointment?.clinic?.id || tokenAppointment.appointment?.clinicId}`;
       const doctorRoom = `doctor:${tokenAppointment.doctorId}`;

@@ -17,4 +17,3 @@ export class CreateMyUserProfileDto {
 
   // Phone number is NOT included - it's the primary key and cannot be changed
 }
-

@@ -1,11 +1,16 @@
-import { Injectable, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import * as bcrypt from 'bcryptjs';
 import { Repository } from 'typeorm';
-import { Assistant, Doctor, User, Role, RoleType } from '../../entities';
+import { Assistant, Doctor, Role, RoleType, User } from '../../entities';
 import { CreateAssistantDto, UpdateAssistantDto } from './dto';
 import { CreateMyAssistantProfileDto } from './dto/create-my-profile.dto';
 import { UpdateMyAssistantProfileDto } from './dto/update-my-profile.dto';
-import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 export class AssistantsService {
@@ -20,7 +25,10 @@ export class AssistantsService {
     private roleRepository: Repository<Role>,
   ) {}
 
-  async create(createAssistantDto: CreateAssistantDto, currentUserPhone: string): Promise<Assistant> {
+  async create(
+    createAssistantDto: CreateAssistantDto,
+    currentUserPhone: string,
+  ): Promise<Assistant> {
     const { email, name, phone, ...assistantData } = createAssistantDto;
 
     // Find doctor by current user phone
@@ -103,7 +111,10 @@ export class AssistantsService {
     });
   }
 
-  async findAllByDoctor(doctorId: number, currentUserPhone: string): Promise<Assistant[]> {
+  async findAllByDoctor(
+    doctorId: number,
+    currentUserPhone: string,
+  ): Promise<Assistant[]> {
     // Verify doctor belongs to current user
     const doctor = await this.doctorRepository.findOne({
       where: { id: doctorId },
@@ -115,7 +126,9 @@ export class AssistantsService {
     }
 
     if (doctor.userPhone !== currentUserPhone) {
-      throw new ForbiddenException('You can only view assistants for your own doctor profile');
+      throw new ForbiddenException(
+        'You can only view assistants for your own doctor profile',
+      );
     }
 
     return this.assistantRepository.find({
@@ -135,16 +148,25 @@ export class AssistantsService {
     }
 
     if (assistant.doctor.userPhone !== currentUserPhone) {
-      throw new ForbiddenException('You can only view assistants for your own doctor profile');
+      throw new ForbiddenException(
+        'You can only view assistants for your own doctor profile',
+      );
     }
 
     return assistant;
   }
 
-  async update(id: number, updateAssistantDto: UpdateAssistantDto, currentUserPhone: string): Promise<Assistant> {
+  async update(
+    id: number,
+    updateAssistantDto: UpdateAssistantDto,
+    currentUserPhone: string,
+  ): Promise<Assistant> {
     const assistant = await this.findOne(id, currentUserPhone);
 
-    if (updateAssistantDto.email && updateAssistantDto.email !== assistant.email) {
+    if (
+      updateAssistantDto.email &&
+      updateAssistantDto.email !== assistant.email
+    ) {
       const existingAssistant = await this.assistantRepository.findOne({
         where: { email: updateAssistantDto.email },
       });
@@ -160,19 +182,19 @@ export class AssistantsService {
 
   async remove(id: number, currentUserPhone: string): Promise<void> {
     const assistant = await this.findOne(id, currentUserPhone);
-    
+
     // Store user phone before deleting assistant
     const userPhone = assistant.userPhone;
-    
+
     // Delete assistant first
     await this.assistantRepository.remove(assistant);
-    
+
     // If assistant has an associated user account, delete it too
     if (userPhone) {
       const user = await this.userRepository.findOne({
         where: { phone: userPhone },
       });
-      
+
       if (user) {
         await this.userRepository.remove(user);
         console.log(`Deleted user account for assistant: ${userPhone}`);
@@ -186,11 +208,15 @@ export class AssistantsService {
     return this.assistantRepository.save(assistant);
   }
 
-  async changePassword(assistantId: number, newPassword: string, currentUserPhone: string): Promise<{ message: string }> {
+  async changePassword(
+    assistantId: number,
+    newPassword: string,
+    currentUserPhone: string,
+  ): Promise<{ message: string }> {
     const assistant = await this.findOne(assistantId, currentUserPhone);
-    
+
     const hashedPassword = await bcrypt.hash(newPassword, 10);
-    
+
     await this.userRepository.update(assistant.userPhone, {
       password: hashedPassword,
     });
@@ -211,7 +237,10 @@ export class AssistantsService {
     return assistant;
   }
 
-  async createMyProfile(userPhone: string, createProfileDto: CreateMyAssistantProfileDto): Promise<Assistant> {
+  async createMyProfile(
+    userPhone: string,
+    createProfileDto: CreateMyAssistantProfileDto,
+  ): Promise<Assistant> {
     const { doctorId, name, phone, ...assistantData } = createProfileDto;
 
     // Check if user exists and has assistant role
@@ -224,7 +253,7 @@ export class AssistantsService {
       throw new NotFoundException('User not found');
     }
 
-    if (user.role.name !== 'Assistant') {
+    if (user.role.name !== RoleType.ASSISTANT) {
       throw new ConflictException('User must have Assistant role');
     }
 
@@ -234,7 +263,9 @@ export class AssistantsService {
     });
 
     if (existingAssistant) {
-      throw new ConflictException('Assistant profile already exists for this user');
+      throw new ConflictException(
+        'Assistant profile already exists for this user',
+      );
     }
 
     // Verify doctor exists
@@ -270,7 +301,10 @@ export class AssistantsService {
     return !!assistant;
   }
 
-  async updateMyProfile(userPhone: string, updateProfileDto: UpdateMyAssistantProfileDto): Promise<Assistant> {
+  async updateMyProfile(
+    userPhone: string,
+    updateProfileDto: UpdateMyAssistantProfileDto,
+  ): Promise<Assistant> {
     // Get existing assistant profile
     const assistant = await this.getAssistantByUserId(userPhone);
 

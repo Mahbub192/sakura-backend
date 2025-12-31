@@ -1,5 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsString, IsOptional, IsEnum, IsBoolean } from 'class-validator';
+import {
+  IsEmail,
+  IsString,
+  IsOptional,
+  IsEnum,
+  IsBoolean,
+} from 'class-validator';
 import { RoleType } from '../../../entities/role.entity';
 
 export class CreateUserDto {
@@ -28,6 +34,3 @@ export class CreateUserDto {
   @IsBoolean()
   isActive?: boolean;
 }
-
-
-

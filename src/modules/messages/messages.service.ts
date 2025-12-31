@@ -1,13 +1,21 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
-import { Message, MessageType, MessageChannel } from '../../entities/message.entity';
-import { MessageThread } from '../../entities/message-thread.entity';
-import { User } from '../../entities/user.entity';
-import { Role, RoleType } from '../../entities/role.entity';
-import { CreateMessageDto } from './dto/create-message.dto';
-import { CreateThreadDto } from './dto/create-thread.dto';
+import { In, Repository } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
+import { MessageThread } from '../../entities/message-thread.entity';
+import {
+  Message,
+  MessageChannel,
+  MessageType,
+} from '../../entities/message.entity';
+import { Role, RoleType } from '../../entities/role.entity';
+import { User } from '../../entities/user.entity';
+import { CreateMessageDto } from './dto/create-message.dto';
 
 @Injectable()
 export class MessagesService {
@@ -25,7 +33,10 @@ export class MessagesService {
   /**
    * Get or create a thread between two users
    */
-  async getOrCreateThread(userPhone: string, participantPhone: string): Promise<MessageThread> {
+  async getOrCreateThread(
+    userPhone: string,
+    participantPhone: string,
+  ): Promise<MessageThread> {
     if (userPhone === participantPhone) {
       throw new BadRequestException('Cannot create thread with yourself');
     }
@@ -41,8 +52,12 @@ export class MessagesService {
 
     if (!thread) {
       // Create new thread
-      const participant1 = await this.userRepository.findOne({ where: { phone: userPhone } });
-      const participant2 = await this.userRepository.findOne({ where: { phone: participantPhone } });
+      const participant1 = await this.userRepository.findOne({
+        where: { phone: userPhone },
+      });
+      const participant2 = await this.userRepository.findOne({
+        where: { phone: participantPhone },
+      });
 
       if (!participant1 || !participant2) {
         throw new NotFoundException('One or both users not found');
@@ -67,8 +82,18 @@ export class MessagesService {
   /**
    * Create a new message
    */
-  async createMessage(userPhone: string, createMessageDto: CreateMessageDto): Promise<Message> {
-    const { recipientPhone, content, subject, type = MessageType.TEXT, channel = MessageChannel.IN_APP, attachmentUrl } = createMessageDto;
+  async createMessage(
+    userPhone: string,
+    createMessageDto: CreateMessageDto,
+  ): Promise<Message> {
+    const {
+      recipientPhone,
+      content,
+      subject,
+      type = MessageType.TEXT,
+      channel = MessageChannel.IN_APP,
+      attachmentUrl,
+    } = createMessageDto;
 
     if (userPhone === recipientPhone) {
       throw new BadRequestException('Cannot send message to yourself');
@@ -78,8 +103,12 @@ export class MessagesService {
     const thread = await this.getOrCreateThread(userPhone, recipientPhone);
 
     // Get sender and recipient
-    const sender = await this.userRepository.findOne({ where: { phone: userPhone } });
-    const recipient = await this.userRepository.findOne({ where: { phone: recipientPhone } });
+    const sender = await this.userRepository.findOne({
+      where: { phone: userPhone },
+    });
+    const recipient = await this.userRepository.findOne({
+      where: { phone: recipientPhone },
+    });
 
     if (!sender || !recipient) {
       throw new NotFoundException('Sender or recipient not found');
@@ -103,9 +132,10 @@ export class MessagesService {
     const savedMessage = await this.messageRepository.save(message);
 
     // Update thread's last message and unread count
-    thread.lastMessage = content.length > 100 ? content.substring(0, 100) + '...' : content;
+    thread.lastMessage =
+      content.length > 100 ? content.substring(0, 100) + '...' : content;
     thread.lastMessageAt = new Date();
-    
+
     // Increment unread count for recipient
     if (thread.participant1Phone === recipientPhone) {
       thread.unreadCount1 += 1;
@@ -121,7 +151,10 @@ export class MessagesService {
   /**
    * Get all threads for a user
    */
-  async getThreads(userPhone: string, filter?: 'all' | 'unread' | 'flagged'): Promise<MessageThread[]> {
+  async getThreads(
+    userPhone: string,
+    filter?: 'all' | 'unread' | 'flagged',
+  ): Promise<MessageThread[]> {
     const whereConditions: any[] = [
       { participant1Phone: userPhone },
       { participant2Phone: userPhone },
@@ -129,7 +162,14 @@ export class MessagesService {
 
     const threads = await this.threadRepository.find({
       where: whereConditions,
-      relations: ['participant1', 'participant2', 'participant1.doctor', 'participant2.doctor', 'participant1.assistant', 'participant2.assistant'],
+      relations: [
+        'participant1',
+        'participant2',
+        'participant1.doctor',
+        'participant2.doctor',
+        'participant1.assistant',
+        'participant2.assistant',
+      ],
       order: { lastMessageAt: 'DESC', updatedAt: 'DESC' },
     });
 
@@ -137,8 +177,11 @@ export class MessagesService {
     let filteredThreads = threads;
 
     if (filter === 'unread') {
-      filteredThreads = threads.filter(thread => {
-        const unreadCount = thread.participant1Phone === userPhone ? thread.unreadCount1 : thread.unreadCount2;
+      filteredThreads = threads.filter((thread) => {
+        const unreadCount =
+          thread.participant1Phone === userPhone
+            ? thread.unreadCount1
+            : thread.unreadCount2;
         return unreadCount > 0;
       });
     }
@@ -151,7 +194,10 @@ export class MessagesService {
   /**
    * Get messages in a thread
    */
-  async getThreadMessages(userPhone: string, threadId: string): Promise<Message[]> {
+  async getThreadMessages(
+    userPhone: string,
+    threadId: string,
+  ): Promise<Message[]> {
     // Verify user is a participant in the thread
     const thread = await this.threadRepository.findOne({
       where: [
@@ -220,8 +266,14 @@ export class MessagesService {
       .createQueryBuilder('message')
       .leftJoinAndSelect('message.sender', 'sender')
       .leftJoinAndSelect('message.recipient', 'recipient')
-      .where('(message.senderPhone = :userPhone OR message.recipientPhone = :userPhone)', { userPhone })
-      .andWhere('(message.content ILIKE :query OR message.subject ILIKE :query)', { query: `%${query}%` })
+      .where(
+        '(message.senderPhone = :userPhone OR message.recipientPhone = :userPhone)',
+        { userPhone },
+      )
+      .andWhere(
+        '(message.content ILIKE :query OR message.subject ILIKE :query)',
+        { query: `%${query}%` },
+      )
       .orderBy('message.createdAt', 'DESC')
       .limit(50)
       .getMany();
@@ -241,8 +293,11 @@ export class MessagesService {
     });
 
     let totalUnread = 0;
-    threads.forEach(thread => {
-      const unreadCount = thread.participant1Phone === userPhone ? thread.unreadCount1 : thread.unreadCount2;
+    threads.forEach((thread) => {
+      const unreadCount =
+        thread.participant1Phone === userPhone
+          ? thread.unreadCount1
+          : thread.unreadCount2;
       totalUnread += unreadCount;
     });
 
@@ -272,7 +327,7 @@ export class MessagesService {
         ],
       });
 
-      const roleIds = roles.map(r => r.id);
+      const roleIds = roles.map((r) => r.id);
 
       const recipients = await this.userRepository.find({
         where: {
@@ -283,7 +338,7 @@ export class MessagesService {
         select: ['phone', 'firstName', 'lastName', 'email'],
       });
 
-      return recipients.map(user => ({
+      return recipients.map((user) => ({
         phone: user.phone,
         name: `${user.firstName} ${user.lastName}`,
         email: user.email,
@@ -294,7 +349,11 @@ export class MessagesService {
     }
 
     // If user is doctor/assistant/admin, return all patients
-    if ([RoleType.DOCTOR, RoleType.ASSISTANT, RoleType.ADMIN].includes(currentUser.role.name as RoleType)) {
+    if (
+      [RoleType.DOCTOR, RoleType.ASSISTANT, RoleType.ADMIN].includes(
+        currentUser.role.name as RoleType,
+      )
+    ) {
       const patientRole = await this.roleRepository.findOne({
         where: { name: RoleType.USER },
       });
@@ -312,7 +371,7 @@ export class MessagesService {
         select: ['phone', 'firstName', 'lastName', 'email'],
       });
 
-      return recipients.map(user => ({
+      return recipients.map((user) => ({
         phone: user.phone,
         name: `${user.firstName} ${user.lastName}`,
         email: user.email,
@@ -323,4 +382,3 @@ export class MessagesService {
     return [];
   }
 }
-

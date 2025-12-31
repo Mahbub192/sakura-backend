@@ -1,32 +1,38 @@
 import {
-  Controller,
-  Get,
-  Post,
   Body,
-  Patch,
-  Param,
+  Controller,
   Delete,
-  UseGuards,
+  Get,
+  Param,
+  Patch,
+  Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
   ApiBearerAuth,
+  ApiOperation,
   ApiParam,
   ApiQuery,
+  ApiResponse,
+  ApiTags,
 } from '@nestjs/swagger';
-import { TokenAppointmentsService } from './token-appointments.service';
-import { CreateTokenAppointmentDto } from './dto/create-token-appointment.dto';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
-import { Roles } from '../../common/decorators/roles.decorator';
-import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RoleType } from '../../entities/role.entity';
 import { TokenAppointmentStatus } from '../../entities/token-appointment.entity';
-import { DoctorsService } from '../doctors/doctors.service';
 import { AssistantsService } from '../assistants/assistants.service';
+import { DoctorsService } from '../doctors/doctors.service';
+import { CreateTokenAppointmentDto } from './dto/create-token-appointment.dto';
+import { TokenAppointmentsService } from './token-appointments.service';
+
+interface CurrentUserPayload {
+  userId: string; // Phone number (primary key)
+  email: string;
+  role: RoleType;
+}
 
 @ApiTags('Token Appointments')
 @Controller('token-appointments')
@@ -40,7 +46,10 @@ export class TokenAppointmentsController {
   @Post()
   @ApiOperation({ summary: 'Book an appointment (create token appointment)' })
   @ApiResponse({ status: 201, description: 'Appointment booked successfully' })
-  @ApiResponse({ status: 409, description: 'Appointment slot is full or patient already has booking' })
+  @ApiResponse({
+    status: 409,
+    description: 'Appointment slot is full or patient already has booking',
+  })
   create(@Body() createTokenAppointmentDto: CreateTokenAppointmentDto) {
     return this.tokenAppointmentsService.create(createTokenAppointmentDto);
   }
@@ -51,23 +60,39 @@ export class TokenAppointmentsController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get all token appointments' })
   @ApiResponse({ status: 200, description: 'List of all token appointments' })
-  @ApiQuery({ name: 'doctorId', required: false, description: 'Filter by doctor ID' })
-  @ApiQuery({ name: 'clinicId', required: false, description: 'Filter by clinic ID' })
-  @ApiQuery({ name: 'date', required: false, description: 'Filter by date (YYYY-MM-DD)' })
+  @ApiQuery({
+    name: 'doctorId',
+    required: false,
+    description: 'Filter by doctor ID',
+  })
+  @ApiQuery({
+    name: 'clinicId',
+    required: false,
+    description: 'Filter by clinic ID',
+  })
+  @ApiQuery({
+    name: 'date',
+    required: false,
+    description: 'Filter by date (YYYY-MM-DD)',
+  })
   async findAll(
     @Query('doctorId') doctorId?: string,
     @Query('clinicId') clinicId?: string,
     @Query('date') date?: string,
-    @CurrentUser() user?: any,
+    @CurrentUser() user?: CurrentUserPayload,
   ) {
     // If user is a doctor, automatically filter by their doctor ID
     if (user && user.role === RoleType.DOCTOR && !doctorId) {
       try {
         const doctor = await this.doctorsService.findByUserId(user.userId);
         if (doctor) {
-          return this.tokenAppointmentsService.findWithFilters(doctor.id, clinicId ? +clinicId : undefined, date);
+          return this.tokenAppointmentsService.findWithFilters(
+            doctor.id,
+            clinicId ? +clinicId : undefined,
+            date,
+          );
         }
-      } catch (error) {
+      } catch {
         // If doctor profile doesn't exist, return empty array
         return [];
       }
@@ -76,11 +101,17 @@ export class TokenAppointmentsController {
     // If user is an assistant, automatically filter by their assigned doctor ID
     if (user && user.role === RoleType.ASSISTANT && !doctorId) {
       try {
-        const assistant = await this.assistantsService.getAssistantByUserId(user.userId);
+        const assistant = await this.assistantsService.getAssistantByUserId(
+          user.userId,
+        );
         if (assistant) {
-          return this.tokenAppointmentsService.findWithFilters(assistant.doctorId, clinicId ? +clinicId : undefined, date);
+          return this.tokenAppointmentsService.findWithFilters(
+            assistant.doctorId,
+            clinicId ? +clinicId : undefined,
+            date,
+          );
         }
-      } catch (error) {
+      } catch {
         // If assistant profile doesn't exist, return empty array
         return [];
       }
@@ -96,7 +127,11 @@ export class TokenAppointmentsController {
   @Get('my-appointments')
   @ApiOperation({ summary: 'Get appointments by patient email' })
   @ApiResponse({ status: 200, description: 'List of patient appointments' })
-  @ApiQuery({ name: 'email', required: true, description: 'Patient email address' })
+  @ApiQuery({
+    name: 'email',
+    required: true,
+    description: 'Patient email address',
+  })
   findMyAppointments(@Query('email') email: string) {
     return this.tokenAppointmentsService.findByPatientEmail(email);
   }
@@ -159,6 +194,3 @@ export class TokenAppointmentsController {
     return this.tokenAppointmentsService.remove(+id);
   }
 }
-
-
-

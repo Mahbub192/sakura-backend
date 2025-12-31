@@ -1,7 +1,17 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
-import { Appointment, AppointmentStatus, Doctor, TokenAppointment, TokenAppointmentStatus } from '../../entities';
+import {
+  Appointment,
+  AppointmentStatus,
+  Doctor,
+  TokenAppointment,
+  TokenAppointmentStatus,
+} from '../../entities';
 import { CreateTokenAppointmentDto } from './dto/create-token-appointment.dto';
 import { LivePatientsGateway } from './live-patients.gateway';
 
@@ -17,17 +27,28 @@ export class TokenAppointmentsService {
     private readonly livePatientsGateway: LivePatientsGateway,
   ) {}
 
-  async create(createTokenAppointmentDto: CreateTokenAppointmentDto): Promise<TokenAppointment> {
-    const { doctorId, appointmentId, patientName, patientEmail, patientPhone, ...appointmentData } = createTokenAppointmentDto;
+  async create(
+    createTokenAppointmentDto: CreateTokenAppointmentDto,
+  ): Promise<TokenAppointment> {
+    const {
+      doctorId,
+      appointmentId,
+      patientName,
+      patientEmail,
+      patientPhone,
+      ...appointmentData
+    } = createTokenAppointmentDto;
 
     // Validate doctor exists
-    const doctor = await this.doctorRepository.findOne({ where: { id: doctorId } });
+    const doctor = await this.doctorRepository.findOne({
+      where: { id: doctorId },
+    });
     if (!doctor) {
       throw new NotFoundException('Doctor not found');
     }
 
     // Validate appointment slot exists and is available
-    const appointment = await this.appointmentRepository.findOne({ 
+    const appointment = await this.appointmentRepository.findOne({
       where: { id: appointmentId },
     });
     if (!appointment) {
@@ -49,11 +70,16 @@ export class TokenAppointmentsService {
     });
 
     if (existingBooking) {
-      throw new ConflictException('Patient already has an appointment with this doctor on this date');
+      throw new ConflictException(
+        'Patient already has an appointment with this doctor on this date',
+      );
     }
 
     // Generate unique token number
-    const tokenNumber = await this.generateTokenNumber(doctorId, appointmentData.date);
+    const tokenNumber = await this.generateTokenNumber(
+      doctorId,
+      appointmentData.date,
+    );
 
     const tokenAppointment = this.tokenAppointmentRepository.create({
       ...appointmentData,
@@ -67,12 +93,15 @@ export class TokenAppointmentsService {
       status: TokenAppointmentStatus.CONFIRMED,
     });
 
-    const savedTokenAppointment = await this.tokenAppointmentRepository.save(tokenAppointment);
+    const savedTokenAppointment =
+      await this.tokenAppointmentRepository.save(tokenAppointment);
 
     // Broadcast to live viewers
     try {
-      this.livePatientsGateway.broadcastTokenUpdate(savedTokenAppointment as any);
-    } catch (err) {
+      this.livePatientsGateway.broadcastTokenUpdate(
+        savedTokenAppointment as any,
+      );
+    } catch {
       // ignore
     }
 
@@ -118,7 +147,11 @@ export class TokenAppointmentsService {
     });
   }
 
-  async findWithFilters(doctorId?: number, clinicId?: number, date?: string): Promise<TokenAppointment[]> {
+  async findWithFilters(
+    doctorId?: number,
+    clinicId?: number,
+    date?: string,
+  ): Promise<TokenAppointment[]> {
     const queryBuilder = this.tokenAppointmentRepository
       .createQueryBuilder('tokenAppointment')
       .leftJoinAndSelect('tokenAppointment.doctor', 'doctor')
@@ -127,7 +160,9 @@ export class TokenAppointmentsService {
 
     // Filter by doctorId
     if (doctorId) {
-      queryBuilder.andWhere('tokenAppointment.doctorId = :doctorId', { doctorId });
+      queryBuilder.andWhere('tokenAppointment.doctorId = :doctorId', {
+        doctorId,
+      });
     }
 
     // Filter by clinicId (through appointment)
@@ -138,10 +173,24 @@ export class TokenAppointmentsService {
     // Filter by date (compare only the date part, ignoring time)
     if (date) {
       const targetDate = new Date(date);
-      const startOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
-      const endOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 23, 59, 59, 999);
-      
-      queryBuilder.andWhere('tokenAppointment.date >= :startOfDay', { startOfDay });
+      const startOfDay = new Date(
+        targetDate.getFullYear(),
+        targetDate.getMonth(),
+        targetDate.getDate(),
+      );
+      const endOfDay = new Date(
+        targetDate.getFullYear(),
+        targetDate.getMonth(),
+        targetDate.getDate(),
+        23,
+        59,
+        59,
+        999,
+      );
+
+      queryBuilder.andWhere('tokenAppointment.date >= :startOfDay', {
+        startOfDay,
+      });
       queryBuilder.andWhere('tokenAppointment.date <= :endOfDay', { endOfDay });
     }
 
@@ -151,7 +200,9 @@ export class TokenAppointmentsService {
       .getMany();
   }
 
-  async getBookedTimesForSlots(appointmentIds: number[]): Promise<Record<number, string[]>> {
+  async getBookedTimesForSlots(
+    appointmentIds: number[],
+  ): Promise<Record<number, string[]>> {
     if (!appointmentIds || appointmentIds.length === 0) {
       return {};
     }
@@ -167,7 +218,7 @@ export class TokenAppointmentsService {
 
     // Group bookings by appointmentId
     const bookedTimesMap: Record<number, string[]> = {};
-    bookings.forEach(booking => {
+    bookings.forEach((booking) => {
       if (!bookedTimesMap[booking.appointmentId]) {
         bookedTimesMap[booking.appointmentId] = [];
       }
@@ -190,23 +241,33 @@ export class TokenAppointmentsService {
     return tokenAppointment;
   }
 
-  async updateStatus(id: number, status: TokenAppointmentStatus): Promise<TokenAppointment> {
+  async updateStatus(
+    id: number,
+    status: TokenAppointmentStatus,
+  ): Promise<TokenAppointment> {
     const tokenAppointment = await this.findOne(id);
     const oldStatus = tokenAppointment.status;
-    
+
     tokenAppointment.status = status;
-    const updatedAppointment = await this.tokenAppointmentRepository.save(tokenAppointment);
+    const updatedAppointment =
+      await this.tokenAppointmentRepository.save(tokenAppointment);
 
     // If appointment is cancelled, decrement the booking count
-    if ((oldStatus === TokenAppointmentStatus.CONFIRMED || oldStatus === TokenAppointmentStatus.PENDING) && 
-        status === TokenAppointmentStatus.CANCELLED) {
-      await this.updateAppointmentBookingCount(tokenAppointment.appointmentId, -1);
+    if (
+      (oldStatus === TokenAppointmentStatus.CONFIRMED ||
+        oldStatus === TokenAppointmentStatus.PENDING) &&
+      status === TokenAppointmentStatus.CANCELLED
+    ) {
+      await this.updateAppointmentBookingCount(
+        tokenAppointment.appointmentId,
+        -1,
+      );
     }
 
     // Broadcast status change
     try {
       this.livePatientsGateway.broadcastTokenUpdate(updatedAppointment as any);
-    } catch (err) {
+    } catch {
       // ignore
     }
 
@@ -215,19 +276,30 @@ export class TokenAppointmentsService {
 
   async remove(id: number): Promise<void> {
     const tokenAppointment = await this.findOne(id);
-    
+
     // Decrement booking count if appointment was confirmed
-    if (tokenAppointment.status === TokenAppointmentStatus.CONFIRMED || 
-        tokenAppointment.status === TokenAppointmentStatus.PENDING) {
-      await this.updateAppointmentBookingCount(tokenAppointment.appointmentId, -1);
+    if (
+      tokenAppointment.status === TokenAppointmentStatus.CONFIRMED ||
+      tokenAppointment.status === TokenAppointmentStatus.PENDING
+    ) {
+      await this.updateAppointmentBookingCount(
+        tokenAppointment.appointmentId,
+        -1,
+      );
     }
 
     await this.tokenAppointmentRepository.remove(tokenAppointment);
   }
 
-  private async generateTokenNumber(doctorId: number, date: string): Promise<string> {
-    const dateStr = new Date(date).toISOString().split('T')[0].replace(/-/g, '');
-    
+  private async generateTokenNumber(
+    doctorId: number,
+    date: string,
+  ): Promise<string> {
+    const dateStr = new Date(date)
+      .toISOString()
+      .split('T')[0]
+      .replace(/-/g, '');
+
     // Count existing appointments for this doctor on this date
     const count = await this.tokenAppointmentRepository.count({
       where: {
@@ -239,22 +311,27 @@ export class TokenAppointmentsService {
     return `TKN${doctorId}${dateStr}${(count + 1).toString().padStart(3, '0')}`;
   }
 
-  private async updateAppointmentBookingCount(appointmentId: number, increment: number): Promise<void> {
-    const appointment = await this.appointmentRepository.findOne({ where: { id: appointmentId } });
+  private async updateAppointmentBookingCount(
+    appointmentId: number,
+    increment: number,
+  ): Promise<void> {
+    const appointment = await this.appointmentRepository.findOne({
+      where: { id: appointmentId },
+    });
     if (appointment) {
-      appointment.currentBookings = Math.max(0, appointment.currentBookings + increment);
-      
+      appointment.currentBookings = Math.max(
+        0,
+        appointment.currentBookings + increment,
+      );
+
       // Update status based on booking count
       if (appointment.currentBookings >= appointment.maxPatients) {
         appointment.status = AppointmentStatus.BOOKED;
       } else if (appointment.currentBookings === 0) {
         appointment.status = AppointmentStatus.AVAILABLE;
       }
-      
+
       await this.appointmentRepository.save(appointment);
     }
   }
 }
-
-
-

@@ -1,10 +1,17 @@
-import { Injectable, NotFoundException, ConflictException, UnauthorizedException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import * as bcrypt from 'bcryptjs';
 import { Repository } from 'typeorm';
-import { User, Role } from '../../entities';
+import { Role, User } from '../../entities';
 import { CreateUserDto, UpdateUserDto } from './dto';
 import { CreateMyUserProfileDto } from './dto/create-my-profile.dto';
-import * as bcrypt from 'bcryptjs';
+
+type UserWithTempPassword = User & { tempPassword: string };
 
 @Injectable()
 export class UsersService {
@@ -15,23 +22,29 @@ export class UsersService {
     private roleRepository: Repository<Role>,
   ) {}
 
-  async create(createUserDto: CreateUserDto): Promise<User> {
+  async create(createUserDto: CreateUserDto): Promise<UserWithTempPassword> {
     const { email, phone, role: roleName, ...userData } = createUserDto;
 
     // Check if user already exists by phone (primary key)
-    const existingUserByPhone = await this.userRepository.findOne({ where: { phone } });
+    const existingUserByPhone = await this.userRepository.findOne({
+      where: { phone },
+    });
     if (existingUserByPhone) {
       throw new ConflictException('User with this phone number already exists');
     }
 
     // Check if user already exists by email
-    const existingUserByEmail = await this.userRepository.findOne({ where: { email } });
+    const existingUserByEmail = await this.userRepository.findOne({
+      where: { email },
+    });
     if (existingUserByEmail) {
       throw new ConflictException('User with this email already exists');
     }
 
     // Find role
-    const role = await this.roleRepository.findOne({ where: { name: roleName } });
+    const role = await this.roleRepository.findOne({
+      where: { name: roleName },
+    });
     if (!role) {
       throw new NotFoundException('Role not found');
     }
@@ -48,9 +61,9 @@ export class UsersService {
     });
 
     const savedUser = await this.userRepository.save(user);
-    
+
     // Return user with temporary password (in real app, send via email)
-    return { ...savedUser, tempPassword } as any;
+    return { ...savedUser, tempPassword };
   }
 
   async findAll(): Promise<User[]> {
@@ -92,7 +105,8 @@ export class UsersService {
     // Phone number cannot be updated (it's the primary key)
     // UpdateUserDto already excludes phone, but we ensure it's not in the DTO
     if ('phone' in updateUserDto) {
-      delete (updateUserDto as any).phone;
+      const updateDto = updateUserDto as Record<string, unknown>;
+      delete updateDto.phone;
     }
 
     if (updateUserDto.email && updateUserDto.email !== user.email) {
@@ -106,16 +120,20 @@ export class UsersService {
     }
 
     if (updateUserDto.role) {
-      const role = await this.roleRepository.findOne({ 
-        where: { name: updateUserDto.role } 
+      const foundRole = await this.roleRepository.findOne({
+        where: { name: updateUserDto.role },
       });
-      if (!role) {
+      if (!foundRole) {
         throw new NotFoundException('Role not found');
       }
-      updateUserDto.role = role.id as any;
+      // Remove role from DTO and assign roleId directly to user
+      const { role, ...rest } = updateUserDto;
+      void role; // Explicitly mark as intentionally unused
+      Object.assign(user, rest);
+      user.roleId = foundRole.id;
+    } else {
+      Object.assign(user, updateUserDto);
     }
-
-    Object.assign(user, updateUserDto);
     return this.userRepository.save(user);
   }
 
@@ -143,9 +161,12 @@ export class UsersService {
     return this.userRepository.save(user);
   }
 
-  async updateMyProfile(userPhone: string, updateProfileDto: CreateMyUserProfileDto): Promise<User> {
+  async updateMyProfile(
+    userPhone: string,
+    updateProfileDto: CreateMyUserProfileDto,
+  ): Promise<User> {
     const user = await this.findOne(userPhone);
-    
+
     // Update only allowed fields (phone cannot be changed as it's the primary key)
     if (updateProfileDto.firstName !== undefined) {
       user.firstName = updateProfileDto.firstName;
@@ -153,7 +174,10 @@ export class UsersService {
     if (updateProfileDto.lastName !== undefined) {
       user.lastName = updateProfileDto.lastName;
     }
-    if (updateProfileDto.email !== undefined && updateProfileDto.email !== user.email) {
+    if (
+      updateProfileDto.email !== undefined &&
+      updateProfileDto.email !== user.email
+    ) {
       // Check if email is already in use by another user
       const existingUser = await this.userRepository.findOne({
         where: { email: updateProfileDto.email },
@@ -163,15 +187,22 @@ export class UsersService {
       }
       user.email = updateProfileDto.email;
     }
-    
+
     return this.userRepository.save(user);
   }
 
-  async changeMyPassword(userPhone: string, currentPassword: string, newPassword: string): Promise<{ message: string }> {
+  async changeMyPassword(
+    userPhone: string,
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<{ message: string }> {
     const user = await this.findOne(userPhone);
-    
+
     // Verify current password
-    const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    const isPasswordValid = await bcrypt.compare(
+      currentPassword,
+      user.password,
+    );
     if (!isPasswordValid) {
       throw new UnauthorizedException('Current password is incorrect');
     }
@@ -184,6 +215,3 @@ export class UsersService {
     return { message: 'Password changed successfully' };
   }
 }
-
-
-

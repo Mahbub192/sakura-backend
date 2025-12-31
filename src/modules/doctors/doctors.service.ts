@@ -1,7 +1,12 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Doctor, User } from '../../entities';
+import { RoleType } from '../../entities/role.entity';
 import { CreateDoctorDto, UpdateDoctorDto } from './dto';
 import { CreateMyDoctorProfileDto } from './dto/create-my-profile.dto';
 
@@ -27,7 +32,7 @@ export class DoctorsService {
       throw new NotFoundException('User not found');
     }
 
-    if (user.role.name !== 'Doctor') {
+    if (user.role.name !== RoleType.DOCTOR) {
       throw new ConflictException('User must have Doctor role');
     }
 
@@ -37,7 +42,9 @@ export class DoctorsService {
     });
 
     if (existingDoctor) {
-      throw new ConflictException('Doctor profile already exists for this user');
+      throw new ConflictException(
+        'Doctor profile already exists for this user',
+      );
     }
 
     // Check if license number is unique
@@ -58,7 +65,10 @@ export class DoctorsService {
     return this.doctorRepository.save(doctor);
   }
 
-  async createMyProfile(userPhone: string, createProfileDto: CreateMyDoctorProfileDto): Promise<Doctor> {
+  async createMyProfile(
+    userPhone: string,
+    createProfileDto: CreateMyDoctorProfileDto,
+  ): Promise<Doctor> {
     const { licenseNumber, ...doctorData } = createProfileDto;
 
     // Check if user exists and has doctor role
@@ -71,7 +81,7 @@ export class DoctorsService {
       throw new NotFoundException('User not found');
     }
 
-    if (user.role.name !== 'Doctor') {
+    if (user.role.name !== RoleType.DOCTOR) {
       throw new ConflictException('User must have Doctor role');
     }
 
@@ -81,7 +91,9 @@ export class DoctorsService {
     });
 
     if (existingDoctor) {
-      throw new ConflictException('Doctor profile already exists for this user');
+      throw new ConflictException(
+        'Doctor profile already exists for this user',
+      );
     }
 
     // Check if license number is unique
@@ -124,7 +136,10 @@ export class DoctorsService {
   async update(id: number, updateDoctorDto: UpdateDoctorDto): Promise<Doctor> {
     const doctor = await this.findOne(id);
 
-    if (updateDoctorDto.licenseNumber && updateDoctorDto.licenseNumber !== doctor.licenseNumber) {
+    if (
+      updateDoctorDto.licenseNumber &&
+      updateDoctorDto.licenseNumber !== doctor.licenseNumber
+    ) {
       const existingLicense = await this.doctorRepository.findOne({
         where: { licenseNumber: updateDoctorDto.licenseNumber },
       });

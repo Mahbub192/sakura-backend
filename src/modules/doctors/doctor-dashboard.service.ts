@@ -1,8 +1,44 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between } from 'typeorm';
-import { Doctor, Appointment, TokenAppointment, Assistant, Clinic, TokenAppointmentStatus, AppointmentStatus } from '../../entities';
+import { Between, Repository } from 'typeorm';
+import {
+  Appointment,
+  AppointmentStatus,
+  Assistant,
+  Clinic,
+  Doctor,
+  TokenAppointment,
+  TokenAppointmentStatus,
+} from '../../entities';
 import { CreateAppointmentScheduleDto } from './dto/create-appointment-schedule.dto';
+
+interface ContactInfo {
+  notificationSettings?: {
+    events: {
+      newAppointmentBooking: boolean;
+      appointmentReminder: boolean;
+      appointmentCancellation: boolean;
+      newPatientMessage: boolean;
+    };
+    deliveryMethods: {
+      email: boolean;
+      sms: boolean;
+      inApp: boolean;
+    };
+    quietHours: {
+      enabled: boolean;
+      startTime: string;
+      endTime: string;
+    };
+  };
+  clinicInfo?: {
+    logo: string;
+    name: string;
+    address?: string;
+    phone?: string;
+    email?: string;
+  };
+}
 
 export interface DashboardStats {
   totalAppointments: number;
@@ -56,8 +92,19 @@ export class DoctorDashboardService {
   async getDashboardStats(userPhone: string): Promise<DashboardStats> {
     const doctor = await this.getDoctorByUserId(userPhone);
     const today = new Date();
-    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
+    const startOfDay = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate(),
+    );
+    const endOfDay = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate(),
+      23,
+      59,
+      59,
+    );
 
     // Get all appointments for this doctor
     const totalAppointments = await this.appointmentRepository.count({
@@ -117,11 +164,24 @@ export class DoctorDashboardService {
     };
   }
 
-  async getTodayAppointments(userPhone: string): Promise<TodayAppointmentInfo[]> {
+  async getTodayAppointments(
+    userPhone: string,
+  ): Promise<TodayAppointmentInfo[]> {
     const doctor = await this.getDoctorByUserId(userPhone);
     const today = new Date();
-    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
+    const startOfDay = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate(),
+    );
+    const endOfDay = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate(),
+      23,
+      59,
+      59,
+    );
 
     const appointments = await this.tokenAppointmentRepository.find({
       where: {
@@ -131,7 +191,7 @@ export class DoctorDashboardService {
       order: { time: 'ASC' },
     });
 
-    return appointments.map(appointment => ({
+    return appointments.map((appointment) => ({
       id: appointment.id,
       patientName: appointment.patientName,
       patientPhone: appointment.patientPhone,
@@ -143,9 +203,12 @@ export class DoctorDashboardService {
     }));
   }
 
-  async createAppointmentSchedule(userPhone: string, scheduleDto: CreateAppointmentScheduleDto): Promise<Appointment[]> {
+  async createAppointmentSchedule(
+    userPhone: string,
+    scheduleDto: CreateAppointmentScheduleDto,
+  ): Promise<Appointment[]> {
     const doctor = await this.getDoctorByUserId(userPhone);
-    
+
     // Verify clinic exists
     const clinic = await this.clinicRepository.findOne({
       where: { id: scheduleDto.clinicId },
@@ -155,14 +218,8 @@ export class DoctorDashboardService {
       throw new NotFoundException('Clinic not found');
     }
 
-    const {
-      clinicId,
-      date,
-      startTime,
-      endTime,
-      slotDuration,
-      patientPerSlot,
-    } = scheduleDto;
+    const { clinicId, date, startTime, endTime, slotDuration, patientPerSlot } =
+      scheduleDto;
 
     // Generate time slots
     const slots = this.generateTimeSlots(startTime, endTime, slotDuration);
@@ -192,14 +249,16 @@ export class DoctorDashboardService {
           currentBookings: 0,
         });
 
-        const savedAppointment = await this.appointmentRepository.save(appointment);
-        
+        const savedAppointment =
+          await this.appointmentRepository.save(appointment);
+
         // Load relations for the response
-        const appointmentWithRelations = await this.appointmentRepository.findOne({
-          where: { id: savedAppointment.id },
-          relations: ['doctor', 'clinic', 'doctor.user'],
-        });
-        
+        const appointmentWithRelations =
+          await this.appointmentRepository.findOne({
+            where: { id: savedAppointment.id },
+            relations: ['doctor', 'clinic', 'doctor.user'],
+          });
+
         if (appointmentWithRelations) {
           createdAppointments.push(appointmentWithRelations);
         } else {
@@ -211,8 +270,12 @@ export class DoctorDashboardService {
     return createdAppointments;
   }
 
-  private generateTimeSlots(startTime: string, endTime: string, duration: number): Array<{start: string, end: string}> {
-    const slots: Array<{start: string, end: string}> = [];
+  private generateTimeSlots(
+    startTime: string,
+    endTime: string,
+    duration: number,
+  ): Array<{ start: string; end: string }> {
+    const slots: Array<{ start: string; end: string }> = [];
     const start = this.parseTime(startTime);
     const end = this.parseTime(endTime);
 
@@ -238,7 +301,10 @@ export class DoctorDashboardService {
     return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
   }
 
-  async getUpcomingAppointments(userPhone: string, limit: number = 10): Promise<any[]> {
+  async getUpcomingAppointments(
+    userPhone: string,
+    limit: number = 10,
+  ): Promise<any[]> {
     const doctor = await this.getDoctorByUserId(userPhone);
     const now = new Date();
 
@@ -255,7 +321,11 @@ export class DoctorDashboardService {
     return appointments;
   }
 
-  async getMonthlyAppointments(userPhone: string, month: number, year: number): Promise<any[]> {
+  async getMonthlyAppointments(
+    userPhone: string,
+    month: number,
+    year: number,
+  ): Promise<any[]> {
     const doctor = await this.getDoctorByUserId(userPhone);
     const startOfMonth = new Date(year, month - 1, 1);
     const endOfMonth = new Date(year, month, 0, 23, 59, 59);
@@ -269,9 +339,12 @@ export class DoctorDashboardService {
     });
   }
 
-  async updateDoctorProfile(userPhone: string, updateData: any): Promise<Doctor> {
+  async updateDoctorProfile(
+    userPhone: string,
+    updateData: any,
+  ): Promise<Doctor> {
     const doctor = await this.getDoctorByUserId(userPhone);
-    
+
     Object.assign(doctor, updateData);
     return this.doctorRepository.save(doctor);
   }
@@ -280,31 +353,38 @@ export class DoctorDashboardService {
   async getNotificationSettings(userPhone: string): Promise<any> {
     const doctor = await this.getDoctorByUserId(userPhone);
     // Return default settings if not set, or stored settings from contactInfo or a new settings field
-    return (doctor.contactInfo as any)?.notificationSettings || {
-      events: {
-        newAppointmentBooking: true,
-        appointmentReminder: true,
-        appointmentCancellation: true,
-        newPatientMessage: false,
-      },
-      deliveryMethods: {
-        email: true,
-        sms: false,
-        inApp: true,
-      },
-      quietHours: {
-        enabled: false,
-        startTime: '22:00',
-        endTime: '08:00',
-      },
-    };
+    const contactInfo = doctor.contactInfo as ContactInfo | null;
+    return (
+      contactInfo?.notificationSettings || {
+        events: {
+          newAppointmentBooking: true,
+          appointmentReminder: true,
+          appointmentCancellation: true,
+          newPatientMessage: false,
+        },
+        deliveryMethods: {
+          email: true,
+          sms: false,
+          inApp: true,
+        },
+        quietHours: {
+          enabled: false,
+          startTime: '22:00',
+          endTime: '08:00',
+        },
+      }
+    );
   }
 
-  async updateNotificationSettings(userPhone: string, settings: any): Promise<Doctor> {
+  async updateNotificationSettings(
+    userPhone: string,
+    settings: any,
+  ): Promise<Doctor> {
     const doctor = await this.getDoctorByUserId(userPhone);
-    const contactInfo = (doctor.contactInfo as any) || {};
-    contactInfo.notificationSettings = settings;
-    doctor.contactInfo = contactInfo;
+    const contactInfo: ContactInfo = (doctor.contactInfo as ContactInfo) || {};
+    contactInfo.notificationSettings =
+      settings as ContactInfo['notificationSettings'];
+    doctor.contactInfo = contactInfo as object;
     return this.doctorRepository.save(doctor);
   }
 
@@ -312,30 +392,33 @@ export class DoctorDashboardService {
   async getClinicInfo(userPhone: string): Promise<any> {
     const doctor = await this.getDoctorByUserId(userPhone);
     // Return clinic info from contactInfo or default
-    return (doctor.contactInfo as any)?.clinicInfo || {
-      logo: '',
-      name: doctor.name || '',
-      address: '',
-      phone: doctor.user?.phone || '',
-      email: doctor.user?.email || '',
-      description: doctor.bio || '',
-      operatingHours: {
-        monday: { start: '09:00', end: '17:00', closed: false },
-        tuesday: { start: '09:00', end: '17:00', closed: false },
-        wednesday: { start: '09:00', end: '17:00', closed: false },
-        thursday: { start: '09:00', end: '17:00', closed: false },
-        friday: { start: '09:00', end: '17:00', closed: false },
-        saturday: { start: '09:00', end: '17:00', closed: true },
-        sunday: { start: '09:00', end: '17:00', closed: true },
-      },
-    };
+    const contactInfo = doctor.contactInfo as ContactInfo | null;
+    return (
+      contactInfo?.clinicInfo || {
+        logo: '',
+        name: doctor.name || '',
+        address: '',
+        phone: doctor.user?.phone || '',
+        email: doctor.user?.email || '',
+        description: doctor.bio || '',
+        operatingHours: {
+          monday: { start: '09:00', end: '17:00', closed: false },
+          tuesday: { start: '09:00', end: '17:00', closed: false },
+          wednesday: { start: '09:00', end: '17:00', closed: false },
+          thursday: { start: '09:00', end: '17:00', closed: false },
+          friday: { start: '09:00', end: '17:00', closed: false },
+          saturday: { start: '09:00', end: '17:00', closed: true },
+          sunday: { start: '09:00', end: '17:00', closed: true },
+        },
+      }
+    );
   }
 
   async updateClinicInfo(userPhone: string, clinicInfo: any): Promise<Doctor> {
     const doctor = await this.getDoctorByUserId(userPhone);
-    const contactInfo = (doctor.contactInfo as any) || {};
-    contactInfo.clinicInfo = clinicInfo;
-    doctor.contactInfo = contactInfo;
+    const contactInfo: ContactInfo = (doctor.contactInfo as ContactInfo) || {};
+    contactInfo.clinicInfo = clinicInfo as ContactInfo['clinicInfo'];
+    doctor.contactInfo = contactInfo as object;
     return this.doctorRepository.save(doctor);
   }
 
@@ -344,9 +427,23 @@ export class DoctorDashboardService {
     const doctor = await this.getDoctorByUserId(userPhone);
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+    const endOfMonth = new Date(
+      now.getFullYear(),
+      now.getMonth() + 1,
+      0,
+      23,
+      59,
+      59,
+    );
     const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+    const endOfLastMonth = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      0,
+      23,
+      59,
+      59,
+    );
 
     // Get all completed appointments
     const allCompleted = await this.tokenAppointmentRepository.find({
@@ -375,12 +472,23 @@ export class DoctorDashboardService {
     });
 
     // Calculate totals
-    const totalIncome = allCompleted.reduce((sum, apt) => sum + Number(apt.doctorFee), 0);
-    const thisMonth = thisMonthCompleted.reduce((sum, apt) => sum + Number(apt.doctorFee), 0);
-    const lastMonth = lastMonthCompleted.reduce((sum, apt) => sum + Number(apt.doctorFee), 0);
+    const totalIncome = allCompleted.reduce(
+      (sum, apt) => sum + Number(apt.doctorFee),
+      0,
+    );
+    const thisMonth = thisMonthCompleted.reduce(
+      (sum, apt) => sum + Number(apt.doctorFee),
+      0,
+    );
+    const lastMonth = lastMonthCompleted.reduce(
+      (sum, apt) => sum + Number(apt.doctorFee),
+      0,
+    );
     const totalAppointments = allCompleted.length;
-    const averagePerAppointment = totalAppointments > 0 ? totalIncome / totalAppointments : 0;
-    const growth = lastMonth > 0 ? ((thisMonth - lastMonth) / lastMonth) * 100 : 0;
+    const averagePerAppointment =
+      totalAppointments > 0 ? totalIncome / totalAppointments : 0;
+    const growth =
+      lastMonth > 0 ? ((thisMonth - lastMonth) / lastMonth) * 100 : 0;
 
     return {
       totalIncome: Number(totalIncome.toFixed(2)),

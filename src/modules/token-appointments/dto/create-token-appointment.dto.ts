@@ -1,5 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNumber, IsDateString, IsOptional, IsEnum, IsEmail, IsPositive, IsBoolean } from 'class-validator';
+import {
+  IsString,
+  IsNumber,
+  IsDateString,
+  IsOptional,
+  IsEnum,
+  IsEmail,
+  IsPositive,
+  IsBoolean,
+} from 'class-validator';
 import { TokenAppointmentStatus } from '../../../entities/token-appointment.entity';
 
 export class CreateTokenAppointmentDto {
@@ -65,11 +74,12 @@ export class CreateTokenAppointmentDto {
   @IsNumber()
   appointmentId: number;
 
-  @ApiProperty({ description: 'Booking status', enum: TokenAppointmentStatus, required: false })
+  @ApiProperty({
+    description: 'Booking status',
+    enum: TokenAppointmentStatus,
+    required: false,
+  })
   @IsOptional()
   @IsEnum(TokenAppointmentStatus)
   status?: TokenAppointmentStatus;
 }
-
-
-

@@ -1,4 +1,11 @@
-import { IsString, IsOptional, IsNumber, IsArray, IsObject, Min } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsNumber,
+  IsArray,
+  IsObject,
+  Min,
+} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class UpdateDoctorProfileDto {
@@ -18,28 +25,47 @@ export class UpdateDoctorProfileDto {
   @Min(0)
   consultationFee?: number;
 
-  @ApiProperty({ description: 'Available days', required: false, example: ['Monday', 'Tuesday', 'Wednesday'] })
+  @ApiProperty({
+    description: 'Available days',
+    required: false,
+    example: ['Monday', 'Tuesday', 'Wednesday'],
+  })
   @IsOptional()
   @IsArray()
   availableDays?: string[];
 
-  @ApiProperty({ description: 'General available time start', required: false, example: '09:00' })
+  @ApiProperty({
+    description: 'General available time start',
+    required: false,
+    example: '09:00',
+  })
   @IsOptional()
   @IsString()
   generalAvailableStart?: string;
 
-  @ApiProperty({ description: 'General available time end', required: false, example: '17:00' })
+  @ApiProperty({
+    description: 'General available time end',
+    required: false,
+    example: '17:00',
+  })
   @IsOptional()
   @IsString()
   generalAvailableEnd?: string;
 
-  @ApiProperty({ description: 'Default consultation duration in minutes', required: false })
+  @ApiProperty({
+    description: 'Default consultation duration in minutes',
+    required: false,
+  })
   @IsOptional()
   @IsNumber()
   @Min(15)
   defaultConsultationDuration?: number;
 
-  @ApiProperty({ description: 'Services provided', required: false, example: ['General Consultation', 'Health Checkup'] })
+  @ApiProperty({
+    description: 'Services provided',
+    required: false,
+    example: ['General Consultation', 'Health Checkup'],
+  })
   @IsOptional()
   @IsArray()
   services?: string[];

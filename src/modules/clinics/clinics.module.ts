@@ -11,6 +11,3 @@ import { Clinic } from '../../entities';
   exports: [ClinicsService],
 })
 export class ClinicsModule {}
-
-
-

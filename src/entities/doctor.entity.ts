@@ -1,4 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToOne, JoinColumn, OneToMany } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  OneToOne,
+  JoinColumn,
+  OneToMany,
+} from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { User } from './user.entity';
 import { Assistant } from './assistant.entity';
@@ -59,11 +66,17 @@ export class Doctor {
   @Column({ type: 'int', default: 30 })
   defaultConsultationDuration: number;
 
-  @ApiProperty({ description: 'Services provided (JSON array)', required: false })
+  @ApiProperty({
+    description: 'Services provided (JSON array)',
+    required: false,
+  })
   @Column({ type: 'json', nullable: true })
   services: string[];
 
-  @ApiProperty({ description: 'Contact information (JSON object)', required: false })
+  @ApiProperty({
+    description: 'Contact information (JSON object)',
+    required: false,
+  })
   @Column({ type: 'json', nullable: true })
   contactInfo: object;
 
@@ -82,7 +95,10 @@ export class Doctor {
   @OneToMany(() => Appointment, (appointment) => appointment.doctor)
   appointments: Appointment[];
 
-  @OneToMany(() => TokenAppointment, (tokenAppointment) => tokenAppointment.doctor)
+  @OneToMany(
+    () => TokenAppointment,
+    (tokenAppointment) => tokenAppointment.doctor,
+  )
   tokenAppointments: TokenAppointment[];
 
   @ApiProperty({ description: 'Creation timestamp' })
@@ -93,6 +109,3 @@ export class Doctor {
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   updatedAt: Date;
 }
-
-
-

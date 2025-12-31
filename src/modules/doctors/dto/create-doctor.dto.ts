@@ -1,6 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNumber, IsOptional, IsDecimal, IsPositive, Min, IsArray, IsObject } from 'class-validator';
-import { Transform, Type } from 'class-transformer';
+import { Type } from 'class-transformer';
+import {
+  IsArray,
+  IsNumber,
+  IsObject,
+  IsOptional,
+  IsPositive,
+  IsString,
+  Min,
+} from 'class-validator';
 
 export class CreateDoctorDto {
   @ApiProperty({ description: 'Doctor full name' })
@@ -41,28 +49,47 @@ export class CreateDoctorDto {
   @Min(0.01)
   consultationFee: number;
 
-  @ApiProperty({ description: 'Available days', required: false, example: ['Monday', 'Tuesday', 'Wednesday'] })
+  @ApiProperty({
+    description: 'Available days',
+    required: false,
+    example: ['Monday', 'Tuesday', 'Wednesday'],
+  })
   @IsOptional()
   @IsArray()
   availableDays?: string[];
 
-  @ApiProperty({ description: 'General available time start', required: false, example: '09:00' })
+  @ApiProperty({
+    description: 'General available time start',
+    required: false,
+    example: '09:00',
+  })
   @IsOptional()
   @IsString()
   generalAvailableStart?: string;
 
-  @ApiProperty({ description: 'General available time end', required: false, example: '17:00' })
+  @ApiProperty({
+    description: 'General available time end',
+    required: false,
+    example: '17:00',
+  })
   @IsOptional()
   @IsString()
   generalAvailableEnd?: string;
 
-  @ApiProperty({ description: 'Default consultation duration in minutes', required: false })
+  @ApiProperty({
+    description: 'Default consultation duration in minutes',
+    required: false,
+  })
   @IsOptional()
   @IsNumber()
   @Min(15)
   defaultConsultationDuration?: number;
 
-  @ApiProperty({ description: 'Services provided', required: false, example: ['General Consultation', 'Health Checkup'] })
+  @ApiProperty({
+    description: 'Services provided',
+    required: false,
+    example: ['General Consultation', 'Health Checkup'],
+  })
   @IsOptional()
   @IsArray()
   services?: string[];
@@ -76,6 +103,3 @@ export class CreateDoctorDto {
   @IsString()
   userPhone: string;
 }
-
-
-

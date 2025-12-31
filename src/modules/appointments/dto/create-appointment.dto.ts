@@ -1,5 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsDateString, IsString, IsNumber, IsPositive, IsOptional, IsEnum } from 'class-validator';
+import {
+  IsDateString,
+  IsString,
+  IsNumber,
+  IsPositive,
+  IsOptional,
+  IsEnum,
+} from 'class-validator';
 import { AppointmentStatus } from '../../../entities/appointment.entity';
 
 export class CreateAppointmentDto {
@@ -28,17 +35,21 @@ export class CreateAppointmentDto {
   @IsPositive()
   duration: number;
 
-  @ApiProperty({ description: 'Appointment status', enum: AppointmentStatus, required: false })
+  @ApiProperty({
+    description: 'Appointment status',
+    enum: AppointmentStatus,
+    required: false,
+  })
   @IsOptional()
   @IsEnum(AppointmentStatus)
   status?: AppointmentStatus;
 
-  @ApiProperty({ description: 'Maximum number of patients for this slot', default: 1 })
+  @ApiProperty({
+    description: 'Maximum number of patients for this slot',
+    default: 1,
+  })
   @IsOptional()
   @IsNumber()
   @IsPositive()
   maxPatients?: number;
 }
-
-
-

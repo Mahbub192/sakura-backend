@@ -18,4 +18,3 @@ export class UpdateMyAssistantProfileDto {
   @Min(0)
   experience?: number;
 }
-

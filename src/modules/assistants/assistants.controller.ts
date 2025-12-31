@@ -1,32 +1,36 @@
 import {
-  Controller,
-  Get,
-  Post,
   Body,
-  Patch,
-  Param,
+  Controller,
   Delete,
-  UseGuards,
-  Query,
   ForbiddenException,
+  Get,
+  Param,
+  Patch,
+  Post,
+  UseGuards,
 } from '@nestjs/common';
 import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
   ApiBearerAuth,
+  ApiOperation,
   ApiParam,
-  ApiQuery,
+  ApiResponse,
+  ApiTags,
 } from '@nestjs/swagger';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { RoleType } from '../../entities/role.entity';
 import { AssistantsService } from './assistants.service';
 import { CreateAssistantDto, UpdateAssistantDto } from './dto';
 import { CreateMyAssistantProfileDto } from './dto/create-my-profile.dto';
 import { UpdateMyAssistantProfileDto } from './dto/update-my-profile.dto';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../../common/guards/roles.guard';
-import { Roles } from '../../common/decorators/roles.decorator';
-import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { RoleType } from '../../entities/role.entity';
+
+interface CurrentUserPayload {
+  userId: string; // Phone number (primary key)
+  email: string;
+  role: RoleType;
+}
 
 @ApiTags('Assistants')
 @Controller('assistants')
@@ -40,9 +44,18 @@ export class AssistantsController {
   @Roles(RoleType.DOCTOR)
   @ApiOperation({ summary: 'Create a new assistant (Doctor only)' })
   @ApiResponse({ status: 201, description: 'Assistant created successfully' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Only doctors can create assistants' })
-  @ApiResponse({ status: 409, description: 'Conflict - Assistant email already exists' })
-  create(@Body() createAssistantDto: CreateAssistantDto, @CurrentUser() user: any) {
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Only doctors can create assistants',
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Conflict - Assistant email already exists',
+  })
+  create(
+    @Body() createAssistantDto: CreateAssistantDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
     return this.assistantsService.create(createAssistantDto, user.userId);
   }
 
@@ -51,24 +64,32 @@ export class AssistantsController {
   @Roles(RoleType.DOCTOR)
   @ApiOperation({ summary: 'Get all assistants for current doctor' })
   @ApiResponse({ status: 200, description: 'List of assistants' })
-  findAllByDoctor(@CurrentUser() user: any) {
+  findAllByDoctor(@CurrentUser() user: CurrentUserPayload) {
     return this.assistantsService.findAllByCurrentDoctor(user.userId);
   }
 
   // IMPORTANT: Specific routes must come BEFORE parameterized routes like :id
   // Otherwise /assistants/check-profile will match @Get(':id') instead
-  
+
   @Get('check-profile')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RoleType.ASSISTANT)
   @ApiOperation({ summary: 'Check if assistant profile exists' })
   @ApiResponse({ status: 200, description: 'Profile check result' })
-  @ApiResponse({ status: 403, description: 'Forbidden - User must have Assistant role' })
-  checkProfile(@CurrentUser() user: any) {
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - User must have Assistant role',
+  })
+  checkProfile(@CurrentUser() user: CurrentUserPayload) {
     // Verify user has Assistant role (guard should handle this, but double-check)
     if (user?.role !== RoleType.ASSISTANT) {
-      console.error('[check-profile] User role check failed:', { user, required: RoleType.ASSISTANT });
-      throw new ForbiddenException(`User must have Assistant role to check profile. Current role: ${user?.role || 'undefined'}`);
+      console.error('[check-profile] User role check failed:', {
+        user,
+        required: RoleType.ASSISTANT,
+      });
+      throw new ForbiddenException(
+        `User must have Assistant role to check profile. Current role: ${user?.role || 'undefined'}`,
+      );
     }
     return this.assistantsService.checkProfileExists(user.userId);
   }
@@ -79,7 +100,7 @@ export class AssistantsController {
   @ApiOperation({ summary: 'Get assistant profile (Assistant only)' })
   @ApiResponse({ status: 200, description: 'Assistant profile' })
   @ApiResponse({ status: 404, description: 'Assistant profile not found' })
-  getProfile(@CurrentUser() user: any) {
+  getProfile(@CurrentUser() user: CurrentUserPayload) {
     return this.assistantsService.getAssistantByUserId(user.userId);
   }
 
@@ -90,7 +111,7 @@ export class AssistantsController {
   @ApiResponse({ status: 200, description: 'Assistant found' })
   @ApiResponse({ status: 404, description: 'Assistant not found' })
   @ApiParam({ name: 'id', description: 'Assistant ID' })
-  findOne(@Param('id') id: string, @CurrentUser() user: any) {
+  findOne(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
     return this.assistantsService.findOne(+id, user.userId);
   }
 
@@ -101,7 +122,11 @@ export class AssistantsController {
   @ApiResponse({ status: 200, description: 'Assistant updated' })
   @ApiResponse({ status: 404, description: 'Assistant not found' })
   @ApiParam({ name: 'id', description: 'Assistant ID' })
-  update(@Param('id') id: string, @Body() updateAssistantDto: UpdateAssistantDto, @CurrentUser() user: any) {
+  update(
+    @Param('id') id: string,
+    @Body() updateAssistantDto: UpdateAssistantDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
     return this.assistantsService.update(+id, updateAssistantDto, user.userId);
   }
 
@@ -112,7 +137,10 @@ export class AssistantsController {
   @ApiResponse({ status: 200, description: 'Assistant status toggled' })
   @ApiResponse({ status: 404, description: 'Assistant not found' })
   @ApiParam({ name: 'id', description: 'Assistant ID' })
-  toggleStatus(@Param('id') id: string, @CurrentUser() user: any) {
+  toggleStatus(
+    @Param('id') id: string,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
     return this.assistantsService.toggleStatus(+id, user.userId);
   }
 
@@ -123,7 +151,7 @@ export class AssistantsController {
   @ApiResponse({ status: 200, description: 'Assistant deleted' })
   @ApiResponse({ status: 404, description: 'Assistant not found' })
   @ApiParam({ name: 'id', description: 'Assistant ID' })
-  remove(@Param('id') id: string, @CurrentUser() user: any) {
+  remove(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
     return this.assistantsService.remove(+id, user.userId);
   }
 
@@ -137,28 +165,50 @@ export class AssistantsController {
   changePassword(
     @Param('id') id: string,
     @Body() body: { newPassword: string },
-    @CurrentUser() user: any
+    @CurrentUser() user: CurrentUserPayload,
   ) {
-    return this.assistantsService.changePassword(+id, body.newPassword, user.userId);
+    return this.assistantsService.changePassword(
+      +id,
+      body.newPassword,
+      user.userId,
+    );
   }
 
   @Post('my-profile')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RoleType.ASSISTANT)
   @ApiOperation({ summary: 'Create my assistant profile (self-service)' })
-  @ApiResponse({ status: 201, description: 'Assistant profile created successfully' })
+  @ApiResponse({
+    status: 201,
+    description: 'Assistant profile created successfully',
+  })
   @ApiResponse({ status: 409, description: 'Assistant profile already exists' })
-  createMyProfile(@Body() createProfileDto: CreateMyAssistantProfileDto, @CurrentUser() user: any) {
-    return this.assistantsService.createMyProfile(user.userId, createProfileDto);
+  createMyProfile(
+    @Body() createProfileDto: CreateMyAssistantProfileDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.assistantsService.createMyProfile(
+      user.userId,
+      createProfileDto,
+    );
   }
 
   @Patch('my-profile')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RoleType.ASSISTANT)
   @ApiOperation({ summary: 'Update my assistant profile (self-service)' })
-  @ApiResponse({ status: 200, description: 'Assistant profile updated successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Assistant profile updated successfully',
+  })
   @ApiResponse({ status: 404, description: 'Assistant profile not found' })
-  updateMyProfile(@Body() updateProfileDto: UpdateMyAssistantProfileDto, @CurrentUser() user: any) {
-    return this.assistantsService.updateMyProfile(user.userId, updateProfileDto);
+  updateMyProfile(
+    @Body() updateProfileDto: UpdateMyAssistantProfileDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.assistantsService.updateMyProfile(
+      user.userId,
+      updateProfileDto,
+    );
   }
 }

@@ -1,18 +1,19 @@
+import { Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
 import {
-  WebSocketGateway,
-  WebSocketServer,
-  SubscribeMessage,
+  ConnectedSocket,
+  MessageBody,
   OnGatewayConnection,
   OnGatewayDisconnect,
-  MessageBody,
-  ConnectedSocket,
+  SubscribeMessage,
+  WebSocketGateway,
+  WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { UseGuards, Logger } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config';
-import { MessagesService } from './messages.service';
+import { JwtPayload } from '../../auth/strategies/jwt.strategy';
 import { CreateMessageDto } from './dto/create-message.dto';
+import { MessagesService } from './messages.service';
 
 type AuthenticatedSocket = Socket & {
   userId?: string; // Now stores phone number (string)
@@ -26,7 +27,9 @@ type AuthenticatedSocket = Socket & {
   },
   namespace: '/messages',
 })
-export class MessagesGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class MessagesGateway
+  implements OnGatewayConnection, OnGatewayDisconnect
+{
   @WebSocketServer()
   server: Server;
 
@@ -42,7 +45,9 @@ export class MessagesGateway implements OnGatewayConnection, OnGatewayDisconnect
   async handleConnection(client: AuthenticatedSocket) {
     try {
       // Extract token from handshake auth or query
-      const token = client.handshake.auth?.token || client.handshake.query?.token;
+      const token: string | undefined =
+        (client.handshake.auth?.token as string | undefined) ||
+        (client.handshake.query?.token as string | undefined);
 
       if (!token) {
         this.logger.warn('Connection attempt without token');
@@ -51,8 +56,9 @@ export class MessagesGateway implements OnGatewayConnection, OnGatewayDisconnect
       }
 
       // Verify JWT token
-      const payload = this.jwtService.verify(token as string, {
-        secret: this.configService.get<string>('jwt.secret') || 'default-secret-key',
+      const payload = this.jwtService.verify<JwtPayload>(token, {
+        secret:
+          this.configService.get<string>('jwt.secret') || 'default-secret-key',
       });
 
       // Attach user info to socket
@@ -63,12 +69,13 @@ export class MessagesGateway implements OnGatewayConnection, OnGatewayDisconnect
       this.connectedUsers.set(payload.sub, client.id);
 
       // Join user's personal room
-      client.join(`user:${payload.sub}`);
+      await client.join(`user:${payload.sub}`);
 
       this.logger.log(`User ${payload.sub} connected with socket ${client.id}`);
 
       // Notify user of connection
       client.emit('connected', { userId: payload.sub });
+      await Promise.resolve();
     } catch (error) {
       this.logger.error('Connection error:', error);
       client.disconnect();
@@ -80,6 +87,7 @@ export class MessagesGateway implements OnGatewayConnection, OnGatewayDisconnect
       this.connectedUsers.delete(client.userId);
       this.logger.log(`User ${client.userId} disconnected`);
     }
+    await Promise.resolve();
   }
 
   @SubscribeMessage('send_message')
@@ -105,16 +113,17 @@ export class MessagesGateway implements OnGatewayConnection, OnGatewayDisconnect
 
       // Get thread to find recipient
       const threads = await this.messagesService.getThreads(client.userId);
-      const thread = threads.find(t => t.threadId === message.threadId);
+      const thread = threads.find((t) => t.threadId === message.threadId);
 
       if (!thread) {
         client.emit('error', { message: 'Thread not found' });
         return;
       }
 
-      const recipientPhone = thread.participant1Phone === client.userId 
-        ? thread.participant2Phone 
-        : thread.participant1Phone;
+      const recipientPhone =
+        thread.participant1Phone === client.userId
+          ? thread.participant2Phone
+          : thread.participant1Phone;
 
       // Emit to sender (confirmation)
       client.emit('message_sent', message);
@@ -135,7 +144,11 @@ export class MessagesGateway implements OnGatewayConnection, OnGatewayDisconnect
       return message;
     } catch (error) {
       this.logger.error('Error sending message:', error);
-      client.emit('error', { message: error.message || 'Failed to send message' });
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to send message';
+      client.emit('error', {
+        message: errorMessage,
+      });
     }
   }
 
@@ -154,7 +167,11 @@ export class MessagesGateway implements OnGatewayConnection, OnGatewayDisconnect
       client.emit('marked_read', { threadId: data.threadId });
     } catch (error) {
       this.logger.error('Error marking as read:', error);
-      client.emit('error', { message: error.message || 'Failed to mark as read' });
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to mark as read';
+      client.emit('error', {
+        message: errorMessage,
+      });
     }
   }
 
@@ -170,15 +187,16 @@ export class MessagesGateway implements OnGatewayConnection, OnGatewayDisconnect
 
       // Get thread to find recipient
       const threads = await this.messagesService.getThreads(client.userId);
-      const thread = threads.find(t => t.threadId === data.threadId);
+      const thread = threads.find((t) => t.threadId === data.threadId);
 
       if (!thread) {
         return;
       }
 
-      const recipientPhone = thread.participant1Phone === client.userId 
-        ? thread.participant2Phone 
-        : thread.participant1Phone;
+      const recipientPhone =
+        thread.participant1Phone === client.userId
+          ? thread.participant2Phone
+          : thread.participant1Phone;
 
       // Emit typing indicator to recipient
       const recipientSocketId = this.connectedUsers.get(recipientPhone);
@@ -204,4 +222,3 @@ export class MessagesGateway implements OnGatewayConnection, OnGatewayDisconnect
     return this.connectedUsers.get(userPhone);
   }
 }
-

@@ -1,4 +1,12 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { User } from './user.entity';
 
@@ -51,11 +59,19 @@ export class Message {
   @Column({ type: 'varchar', nullable: true })
   subject: string;
 
-  @ApiProperty({ description: 'Message type', enum: MessageType, default: MessageType.TEXT })
+  @ApiProperty({
+    description: 'Message type',
+    enum: MessageType,
+    default: MessageType.TEXT,
+  })
   @Column({ type: 'varchar', default: MessageType.TEXT })
   type: MessageType;
 
-  @ApiProperty({ description: 'Message channel', enum: MessageChannel, default: MessageChannel.IN_APP })
+  @ApiProperty({
+    description: 'Message channel',
+    enum: MessageChannel,
+    default: MessageChannel.IN_APP,
+  })
   @Column({ type: 'varchar', default: MessageChannel.IN_APP })
   channel: MessageChannel;
 
@@ -83,4 +99,3 @@ export class Message {
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 }
-

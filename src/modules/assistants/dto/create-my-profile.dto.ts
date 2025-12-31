@@ -25,4 +25,3 @@ export class CreateMyAssistantProfileDto {
   @Min(0)
   experience?: number;
 }
-

@@ -6,4 +6,3 @@ export class MarkReadDto {
   @IsString()
   threadId: string;
 }
-

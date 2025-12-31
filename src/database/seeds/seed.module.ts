@@ -9,6 +9,3 @@ import { Role, User, Clinic } from '../../entities';
   exports: [SeedService],
 })
 export class SeedModule {}
-
-
-

@@ -1,6 +1,6 @@
-import { IsBoolean, IsString, IsOptional, ValidateNested } from 'class-validator';
-import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
+import { IsBoolean, IsString, ValidateNested } from 'class-validator';
 
 class NotificationEventsDto {
   @ApiProperty({ description: 'Notify on new appointment booking' })
@@ -64,4 +64,3 @@ export class NotificationSettingsDto {
   @Type(() => QuietHoursDto)
   quietHours: QuietHoursDto;
 }
-

@@ -1,37 +1,43 @@
 import {
-  Controller,
-  Get,
-  Post,
   Body,
-  Patch,
-  Param,
+  Controller,
   Delete,
-  UseGuards,
-  Query,
+  Get,
   NotFoundException,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
 } from '@nestjs/common';
 import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
   ApiBearerAuth,
+  ApiOperation,
   ApiParam,
   ApiQuery,
+  ApiResponse,
+  ApiTags,
 } from '@nestjs/swagger';
-import { DoctorsService } from './doctors.service';
-import { DoctorDashboardService } from './doctor-dashboard.service';
-import { CreateDoctorDto, UpdateDoctorDto } from './dto';
-import { CreateAppointmentScheduleDto } from './dto/create-appointment-schedule.dto';
-import { UpdateDoctorProfileDto } from './dto/update-doctor-profile.dto';
-import { CreateMyDoctorProfileDto } from './dto/create-my-profile.dto';
-import { NotificationSettingsDto } from './dto/notification-settings.dto';
-import { ClinicInfoDto } from './dto/clinic-info.dto';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
-import { Roles } from '../../common/decorators/roles.decorator';
-import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RoleType } from '../../entities/role.entity';
 import { AssistantsService } from '../assistants/assistants.service';
+import { DoctorDashboardService } from './doctor-dashboard.service';
+import { DoctorsService } from './doctors.service';
+import { CreateDoctorDto, UpdateDoctorDto } from './dto';
+import { ClinicInfoDto } from './dto/clinic-info.dto';
+import { CreateAppointmentScheduleDto } from './dto/create-appointment-schedule.dto';
+import { CreateMyDoctorProfileDto } from './dto/create-my-profile.dto';
+import { NotificationSettingsDto } from './dto/notification-settings.dto';
+import { UpdateDoctorProfileDto } from './dto/update-doctor-profile.dto';
+
+interface CurrentUserPayload {
+  userId: string; // Phone number (primary key)
+  email: string;
+  role: RoleType;
+}
 
 @ApiTags('Doctors')
 @Controller('doctors')
@@ -48,8 +54,14 @@ export class DoctorsController {
   @UseGuards(RolesGuard)
   @Roles(RoleType.ADMIN)
   @ApiOperation({ summary: 'Create a new doctor profile' })
-  @ApiResponse({ status: 201, description: 'Doctor profile created successfully' })
-  @ApiResponse({ status: 409, description: 'Conflict - Doctor already exists or license number in use' })
+  @ApiResponse({
+    status: 201,
+    description: 'Doctor profile created successfully',
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Conflict - Doctor already exists or license number in use',
+  })
   create(@Body() createDoctorDto: CreateDoctorDto) {
     return this.doctorsService.create(createDoctorDto);
   }
@@ -57,17 +69,26 @@ export class DoctorsController {
   @Get()
   @ApiOperation({ summary: 'Get all doctors' })
   @ApiResponse({ status: 200, description: 'List of all doctors' })
-  @ApiQuery({ name: 'specialization', required: false, description: 'Filter by specialization' })
-  async findAll(@Query('specialization') specialization?: string, @CurrentUser() user?: any) {
+  @ApiQuery({
+    name: 'specialization',
+    required: false,
+    description: 'Filter by specialization',
+  })
+  async findAll(
+    @Query('specialization') specialization?: string,
+    @CurrentUser() user?: CurrentUserPayload,
+  ) {
     // If user is an assistant, return only their assigned doctor's profile
     if (user && user.role === RoleType.ASSISTANT) {
       try {
-        const assistant = await this.assistantsService.getAssistantByUserId(user.userId);
+        const assistant = await this.assistantsService.getAssistantByUserId(
+          user.userId,
+        );
         if (assistant && assistant.doctorId) {
           const doctor = await this.doctorsService.findOne(assistant.doctorId);
           return doctor ? [doctor] : [];
         }
-      } catch (error) {
+      } catch {
         return [];
       }
     }
@@ -79,7 +100,7 @@ export class DoctorsController {
         if (doctor) {
           return [doctor];
         }
-      } catch (error) {
+      } catch {
         return [];
       }
     }
@@ -96,10 +117,12 @@ export class DoctorsController {
   @ApiOperation({ summary: 'Get current doctor profile (Doctor or Assistant)' })
   @ApiResponse({ status: 200, description: 'Doctor profile retrieved' })
   @ApiResponse({ status: 404, description: 'Doctor profile not found' })
-  async getProfile(@CurrentUser() user: any) {
+  async getProfile(@CurrentUser() user: CurrentUserPayload) {
     // If assistant, return their assigned doctor's profile
     if (user.role === RoleType.ASSISTANT) {
-      const assistant = await this.assistantsService.getAssistantByUserId(user.userId);
+      const assistant = await this.assistantsService.getAssistantByUserId(
+        user.userId,
+      );
       if (assistant && assistant.doctorId) {
         return this.doctorsService.findOne(assistant.doctorId);
       }
@@ -114,7 +137,7 @@ export class DoctorsController {
   @Roles(RoleType.DOCTOR)
   @ApiOperation({ summary: 'Check if doctor profile exists' })
   @ApiResponse({ status: 200, description: 'Profile check result' })
-  checkProfile(@CurrentUser() user: any) {
+  checkProfile(@CurrentUser() user: CurrentUserPayload) {
     return this.doctorsService.checkProfileExists(user.userId);
   }
 
@@ -122,9 +145,15 @@ export class DoctorsController {
   @UseGuards(RolesGuard)
   @Roles(RoleType.DOCTOR)
   @ApiOperation({ summary: 'Create my doctor profile (self-service)' })
-  @ApiResponse({ status: 201, description: 'Doctor profile created successfully' })
+  @ApiResponse({
+    status: 201,
+    description: 'Doctor profile created successfully',
+  })
   @ApiResponse({ status: 409, description: 'Doctor profile already exists' })
-  createMyProfile(@Body() createProfileDto: CreateMyDoctorProfileDto, @CurrentUser() user: any) {
+  createMyProfile(
+    @Body() createProfileDto: CreateMyDoctorProfileDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
     return this.doctorsService.createMyProfile(user.userId, createProfileDto);
   }
 
@@ -163,12 +192,16 @@ export class DoctorsController {
   @Get('dashboard/stats')
   @UseGuards(RolesGuard)
   @Roles(RoleType.DOCTOR, RoleType.ASSISTANT)
-  @ApiOperation({ summary: 'Get doctor dashboard statistics (Doctor or Assistant)' })
+  @ApiOperation({
+    summary: 'Get doctor dashboard statistics (Doctor or Assistant)',
+  })
   @ApiResponse({ status: 200, description: 'Dashboard statistics retrieved' })
-  async getDashboardStats(@CurrentUser() user: any) {
+  async getDashboardStats(@CurrentUser() user: CurrentUserPayload) {
     // If assistant, get stats for their assigned doctor
     if (user.role === RoleType.ASSISTANT) {
-      const assistant = await this.assistantsService.getAssistantByUserId(user.userId);
+      const assistant = await this.assistantsService.getAssistantByUserId(
+        user.userId,
+      );
       if (assistant && assistant.doctorId) {
         const doctor = await this.doctorsService.findOne(assistant.doctorId);
         if (doctor && doctor.userPhone) {
@@ -183,12 +216,16 @@ export class DoctorsController {
   @Get('dashboard/today-appointments')
   @UseGuards(RolesGuard)
   @Roles(RoleType.DOCTOR, RoleType.ASSISTANT)
-  @ApiOperation({ summary: 'Get today\'s appointments for doctor (Doctor or Assistant)' })
-  @ApiResponse({ status: 200, description: 'Today\'s appointments retrieved' })
-  async getTodayAppointments(@CurrentUser() user: any) {
+  @ApiOperation({
+    summary: "Get today's appointments for doctor (Doctor or Assistant)",
+  })
+  @ApiResponse({ status: 200, description: "Today's appointments retrieved" })
+  async getTodayAppointments(@CurrentUser() user: CurrentUserPayload) {
     // If assistant, get appointments for their assigned doctor
     if (user.role === RoleType.ASSISTANT) {
-      const assistant = await this.assistantsService.getAssistantByUserId(user.userId);
+      const assistant = await this.assistantsService.getAssistantByUserId(
+        user.userId,
+      );
       if (assistant && assistant.doctorId) {
         const doctor = await this.doctorsService.findOne(assistant.doctorId);
         if (doctor && doctor.userPhone) {
@@ -206,8 +243,14 @@ export class DoctorsController {
   @ApiOperation({ summary: 'Create appointment schedule for a day' })
   @ApiResponse({ status: 201, description: 'Appointment schedule created' })
   @ApiResponse({ status: 400, description: 'Invalid schedule data' })
-  createAppointmentSchedule(@Body() scheduleDto: CreateAppointmentScheduleDto, @CurrentUser() user: any) {
-    return this.dashboardService.createAppointmentSchedule(user.userId, scheduleDto);
+  createAppointmentSchedule(
+    @Body() scheduleDto: CreateAppointmentScheduleDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.dashboardService.createAppointmentSchedule(
+      user.userId,
+      scheduleDto,
+    );
   }
 
   @Get('dashboard/upcoming-appointments')
@@ -215,16 +258,28 @@ export class DoctorsController {
   @Roles(RoleType.DOCTOR, RoleType.ASSISTANT)
   @ApiOperation({ summary: 'Get upcoming appointments (Doctor or Assistant)' })
   @ApiResponse({ status: 200, description: 'Upcoming appointments retrieved' })
-  @ApiQuery({ name: 'limit', required: false, description: 'Number of appointments to retrieve' })
-  async getUpcomingAppointments(@CurrentUser() user: any, @Query('limit') limit?: string) {
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Number of appointments to retrieve',
+  })
+  async getUpcomingAppointments(
+    @CurrentUser() user: CurrentUserPayload,
+    @Query('limit') limit?: string,
+  ) {
     const limitNum = limit ? parseInt(limit) : 10;
     // If assistant, get appointments for their assigned doctor
     if (user.role === RoleType.ASSISTANT) {
-      const assistant = await this.assistantsService.getAssistantByUserId(user.userId);
+      const assistant = await this.assistantsService.getAssistantByUserId(
+        user.userId,
+      );
       if (assistant && assistant.doctorId) {
         const doctor = await this.doctorsService.findOne(assistant.doctorId);
         if (doctor && doctor.userPhone) {
-          return this.dashboardService.getUpcomingAppointments(doctor.userPhone, limitNum);
+          return this.dashboardService.getUpcomingAppointments(
+            doctor.userPhone,
+            limitNum,
+          );
         }
       }
       throw new NotFoundException('Assistant doctor not found');
@@ -239,17 +294,34 @@ export class DoctorsController {
   @ApiResponse({ status: 200, description: 'Monthly appointments retrieved' })
   @ApiQuery({ name: 'month', description: 'Month (1-12)' })
   @ApiQuery({ name: 'year', description: 'Year' })
-  getMonthlyAppointments(@CurrentUser() user: any, @Query('month') month: string, @Query('year') year: string) {
-    return this.dashboardService.getMonthlyAppointments(user.userId, parseInt(month), parseInt(year));
+  getMonthlyAppointments(
+    @CurrentUser() user: CurrentUserPayload,
+    @Query('month') month: string,
+    @Query('year') year: string,
+  ) {
+    return this.dashboardService.getMonthlyAppointments(
+      user.userId,
+      parseInt(month),
+      parseInt(year),
+    );
   }
 
   @Patch('profile/update')
   @UseGuards(RolesGuard)
   @Roles(RoleType.DOCTOR)
   @ApiOperation({ summary: 'Update doctor profile information' })
-  @ApiResponse({ status: 200, description: 'Doctor profile updated successfully' })
-  updateProfile(@Body() updateProfileDto: UpdateDoctorProfileDto, @CurrentUser() user: any) {
-    return this.dashboardService.updateDoctorProfile(user.userId, updateProfileDto);
+  @ApiResponse({
+    status: 200,
+    description: 'Doctor profile updated successfully',
+  })
+  updateProfile(
+    @Body() updateProfileDto: UpdateDoctorProfileDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.dashboardService.updateDoctorProfile(
+      user.userId,
+      updateProfileDto,
+    );
   }
 
   // Notification Settings
@@ -258,7 +330,7 @@ export class DoctorsController {
   @Roles(RoleType.DOCTOR)
   @ApiOperation({ summary: 'Get doctor notification settings' })
   @ApiResponse({ status: 200, description: 'Notification settings retrieved' })
-  getNotificationSettings(@CurrentUser() user: any) {
+  getNotificationSettings(@CurrentUser() user: CurrentUserPayload) {
     return this.dashboardService.getNotificationSettings(user.userId);
   }
 
@@ -266,9 +338,18 @@ export class DoctorsController {
   @UseGuards(RolesGuard)
   @Roles(RoleType.DOCTOR)
   @ApiOperation({ summary: 'Update doctor notification settings' })
-  @ApiResponse({ status: 200, description: 'Notification settings updated successfully' })
-  updateNotificationSettings(@Body() settingsDto: NotificationSettingsDto, @CurrentUser() user: any) {
-    return this.dashboardService.updateNotificationSettings(user.userId, settingsDto);
+  @ApiResponse({
+    status: 200,
+    description: 'Notification settings updated successfully',
+  })
+  updateNotificationSettings(
+    @Body() settingsDto: NotificationSettingsDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.dashboardService.updateNotificationSettings(
+      user.userId,
+      settingsDto,
+    );
   }
 
   // Clinic Info
@@ -277,7 +358,7 @@ export class DoctorsController {
   @Roles(RoleType.DOCTOR)
   @ApiOperation({ summary: 'Get doctor clinic information' })
   @ApiResponse({ status: 200, description: 'Clinic information retrieved' })
-  getClinicInfo(@CurrentUser() user: any) {
+  getClinicInfo(@CurrentUser() user: CurrentUserPayload) {
     return this.dashboardService.getClinicInfo(user.userId);
   }
 
@@ -285,8 +366,14 @@ export class DoctorsController {
   @UseGuards(RolesGuard)
   @Roles(RoleType.DOCTOR)
   @ApiOperation({ summary: 'Update doctor clinic information' })
-  @ApiResponse({ status: 200, description: 'Clinic information updated successfully' })
-  updateClinicInfo(@Body() clinicInfoDto: ClinicInfoDto, @CurrentUser() user: any) {
+  @ApiResponse({
+    status: 200,
+    description: 'Clinic information updated successfully',
+  })
+  updateClinicInfo(
+    @Body() clinicInfoDto: ClinicInfoDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
     return this.dashboardService.updateClinicInfo(user.userId, clinicInfoDto);
   }
 
@@ -296,10 +383,7 @@ export class DoctorsController {
   @Roles(RoleType.DOCTOR)
   @ApiOperation({ summary: 'Get doctor billing statistics' })
   @ApiResponse({ status: 200, description: 'Billing statistics retrieved' })
-  getBillingStats(@CurrentUser() user: any) {
+  getBillingStats(@CurrentUser() user: CurrentUserPayload) {
     return this.dashboardService.getBillingStats(user.userId);
   }
 }
-
-
-

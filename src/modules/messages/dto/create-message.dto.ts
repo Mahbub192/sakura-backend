@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNumber, IsOptional, IsEnum, MinLength } from 'class-validator';
-import { MessageType, MessageChannel } from '../../../entities/message.entity';
+import { IsEnum, IsOptional, IsString, MinLength } from 'class-validator';
+import { MessageChannel, MessageType } from '../../../entities/message.entity';
 
 export class CreateMessageDto {
   @ApiProperty({ description: 'Recipient user phone number' })
@@ -17,12 +17,22 @@ export class CreateMessageDto {
   @IsString()
   subject?: string;
 
-  @ApiProperty({ description: 'Message type', enum: MessageType, default: MessageType.TEXT, required: false })
+  @ApiProperty({
+    description: 'Message type',
+    enum: MessageType,
+    default: MessageType.TEXT,
+    required: false,
+  })
   @IsOptional()
   @IsEnum(MessageType)
   type?: MessageType;
 
-  @ApiProperty({ description: 'Message channel', enum: MessageChannel, default: MessageChannel.IN_APP, required: false })
+  @ApiProperty({
+    description: 'Message channel',
+    enum: MessageChannel,
+    default: MessageChannel.IN_APP,
+    required: false,
+  })
   @IsOptional()
   @IsEnum(MessageChannel)
   channel?: MessageChannel;
@@ -32,4 +42,3 @@ export class CreateMessageDto {
   @IsString()
   attachmentUrl?: string;
 }
-

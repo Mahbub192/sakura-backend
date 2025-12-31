@@ -1,30 +1,36 @@
 import {
-  Controller,
-  Get,
-  Post,
   Body,
-  Patch,
+  Controller,
+  ForbiddenException,
+  Get,
   Param,
+  Patch,
+  Post,
   Query,
   UseGuards,
-  ForbiddenException,
 } from '@nestjs/common';
 import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
   ApiBearerAuth,
+  ApiOperation,
   ApiParam,
   ApiQuery,
+  ApiResponse,
+  ApiTags,
 } from '@nestjs/swagger';
-import { AssistantBookingService } from './assistant-booking.service';
-import { AssistantsService } from '../assistants/assistants.service';
-import { CreatePatientBookingDto } from './dto/create-patient-booking.dto';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
-import { Roles } from '../../common/decorators/roles.decorator';
-import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RoleType, TokenAppointmentStatus } from '../../entities';
+import { AssistantsService } from '../assistants/assistants.service';
+import { AssistantBookingService } from './assistant-booking.service';
+import { CreatePatientBookingDto } from './dto/create-patient-booking.dto';
+
+interface CurrentUserPayload {
+  userId: string; // Phone number (primary key)
+  email: string;
+  role: RoleType;
+}
 
 @ApiTags('Assistant Booking')
 @Controller('assistant-booking')
@@ -40,18 +46,41 @@ export class AssistantBookingController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RoleType.ASSISTANT)
   @ApiOperation({ summary: 'Book appointment for patient (Assistant only)' })
-  @ApiResponse({ status: 201, description: 'Patient appointment booked successfully' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Only assistants can book appointments' })
-  @ApiResponse({ status: 409, description: 'Conflict - Slot fully booked or patient already has appointment' })
-  async bookPatient(@Body() createBookingDto: CreatePatientBookingDto, @CurrentUser() user: any) {
+  @ApiResponse({
+    status: 201,
+    description: 'Patient appointment booked successfully',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Only assistants can book appointments',
+  })
+  @ApiResponse({
+    status: 409,
+    description:
+      'Conflict - Slot fully booked or patient already has appointment',
+  })
+  async bookPatient(
+    @Body() createBookingDto: CreatePatientBookingDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
     // Verify user has Assistant role
     if (user?.role !== RoleType.ASSISTANT) {
-      console.error('[book-patient] User role check failed:', { user, required: RoleType.ASSISTANT });
-      throw new ForbiddenException(`Only assistants can book appointments. Current role: ${user?.role || 'undefined'}`);
+      console.error('[book-patient] User role check failed:', {
+        user,
+        required: RoleType.ASSISTANT,
+      });
+      throw new ForbiddenException(
+        `Only assistants can book appointments. Current role: ${user?.role || 'undefined'}`,
+      );
     }
     // Fetch assistant profile by userId
-    const assistant = await this.assistantsService.getAssistantByUserId(user.userId);
-    return this.assistantBookingService.createPatientBooking(createBookingDto, assistant.id);
+    const assistant = await this.assistantsService.getAssistantByUserId(
+      user.userId,
+    );
+    return this.assistantBookingService.createPatientBooking(
+      createBookingDto,
+      assistant.id,
+    );
   }
 
   @Get('available-slots')
@@ -60,17 +89,32 @@ export class AssistantBookingController {
   @ApiOperation({ summary: 'Get available appointment slots for doctor' })
   @ApiResponse({ status: 200, description: 'Available slots retrieved' })
   @ApiQuery({ name: 'doctorId', description: 'Doctor ID', required: true })
-  @ApiQuery({ name: 'date', description: 'Date in YYYY-MM-DD format', required: true })
-  @ApiQuery({ name: 'clinicId', description: 'Clinic ID (optional)', required: false })
+  @ApiQuery({
+    name: 'date',
+    description: 'Date in YYYY-MM-DD format',
+    required: true,
+  })
+  @ApiQuery({
+    name: 'clinicId',
+    description: 'Clinic ID (optional)',
+    required: false,
+  })
   async getAvailableSlots(
     @Query('doctorId') doctorId: string,
     @Query('date') date: string,
     @Query('clinicId') clinicId: string | undefined,
-    @CurrentUser() user: any,
+    @CurrentUser() user: CurrentUserPayload,
   ) {
-    const assistant = await this.assistantsService.getAssistantByUserId(user.userId);
+    const assistant = await this.assistantsService.getAssistantByUserId(
+      user.userId,
+    );
     const clinicIdNum = clinicId ? +clinicId : undefined;
-    return this.assistantBookingService.getAvailableSlots(+doctorId, date, assistant.id, clinicIdNum);
+    return this.assistantBookingService.getAvailableSlots(
+      +doctorId,
+      date,
+      assistant.id,
+      clinicIdNum,
+    );
   }
 
   @Get('doctor-bookings')
@@ -80,18 +124,30 @@ export class AssistantBookingController {
   @ApiResponse({ status: 200, description: 'Doctor bookings retrieved' })
   @ApiQuery({ name: 'doctorId', description: 'Doctor ID' })
   @ApiQuery({ name: 'date', description: 'Date in YYYY-MM-DD format' })
-  async getDoctorBookings(@Query('doctorId') doctorId: string, @Query('date') date: string, @CurrentUser() user: any) {
-    const assistant = await this.assistantsService.getAssistantByUserId(user.userId);
-    return this.assistantBookingService.getDoctorBookings(+doctorId, date, assistant.id);
+  async getDoctorBookings(
+    @Query('doctorId') doctorId: string,
+    @Query('date') date: string,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    const assistant = await this.assistantsService.getAssistantByUserId(
+      user.userId,
+    );
+    return this.assistantBookingService.getDoctorBookings(
+      +doctorId,
+      date,
+      assistant.id,
+    );
   }
 
   @Get('todays-bookings')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RoleType.ASSISTANT)
-  @ApiOperation({ summary: 'Get today\'s bookings for assistant\'s doctor' })
-  @ApiResponse({ status: 200, description: 'Today\'s bookings retrieved' })
-  async getTodaysBookings(@CurrentUser() user: any) {
-    const assistant = await this.assistantsService.getAssistantByUserId(user.userId);
+  @ApiOperation({ summary: "Get today's bookings for assistant's doctor" })
+  @ApiResponse({ status: 200, description: "Today's bookings retrieved" })
+  async getTodaysBookings(@CurrentUser() user: CurrentUserPayload) {
+    const assistant = await this.assistantsService.getAssistantByUserId(
+      user.userId,
+    );
     return this.assistantBookingService.getTodaysBookings(assistant.id);
   }
 
@@ -102,10 +158,24 @@ export class AssistantBookingController {
   @ApiResponse({ status: 200, description: 'Booking status updated' })
   @ApiResponse({ status: 404, description: 'Booking not found' })
   @ApiParam({ name: 'id', description: 'Booking ID' })
-  @ApiQuery({ name: 'status', description: 'New status', enum: TokenAppointmentStatus })
-  async updateBookingStatus(@Param('id') id: string, @Query('status') status: TokenAppointmentStatus, @CurrentUser() user: any) {
-    const assistant = await this.assistantsService.getAssistantByUserId(user.userId);
-    return this.assistantBookingService.updateBookingStatus(+id, status, assistant.id);
+  @ApiQuery({
+    name: 'status',
+    description: 'New status',
+    enum: TokenAppointmentStatus,
+  })
+  async updateBookingStatus(
+    @Param('id') id: string,
+    @Query('status') status: TokenAppointmentStatus,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    const assistant = await this.assistantsService.getAssistantByUserId(
+      user.userId,
+    );
+    return this.assistantBookingService.updateBookingStatus(
+      +id,
+      status,
+      assistant.id,
+    );
   }
 
   @Get('search-patients')
@@ -113,9 +183,20 @@ export class AssistantBookingController {
   @Roles(RoleType.ASSISTANT)
   @ApiOperation({ summary: 'Search patient bookings by name, phone, or email' })
   @ApiResponse({ status: 200, description: 'Patient bookings found' })
-  @ApiQuery({ name: 'search', description: 'Search term (name, phone, or email)' })
-  async searchPatientBookings(@Query('search') searchTerm: string, @CurrentUser() user: any) {
-    const assistant = await this.assistantsService.getAssistantByUserId(user.userId);
-    return this.assistantBookingService.searchPatientBookings(assistant.id, searchTerm);
+  @ApiQuery({
+    name: 'search',
+    description: 'Search term (name, phone, or email)',
+  })
+  async searchPatientBookings(
+    @Query('search') searchTerm: string,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    const assistant = await this.assistantsService.getAssistantByUserId(
+      user.userId,
+    );
+    return this.assistantBookingService.searchPatientBookings(
+      assistant.id,
+      searchTerm,
+    );
   }
 }

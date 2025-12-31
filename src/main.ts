@@ -11,16 +11,20 @@ async function bootstrap() {
   app.enableCors();
 
   // Global validation pipe
-  app.useGlobalPipes(new ValidationPipe({
-    whitelist: true,
-    transform: true,
-    forbidNonWhitelisted: true,
-  }));
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      transform: true,
+      forbidNonWhitelisted: true,
+    }),
+  );
 
   // Swagger setup
   const config = new DocumentBuilder()
     .setTitle('Doctor Appointment Management System')
-    .setDescription('API for managing doctor appointments, patients, and clinic operations')
+    .setDescription(
+      'API for managing doctor appointments, patients, and clinic operations',
+    )
     .setVersion('1.0')
     .addBearerAuth()
     .addTag('Authentication', 'User authentication and authorization')
@@ -40,7 +44,7 @@ async function bootstrap() {
 
   const configService = app.get(ConfigService);
   const port = configService.get<number>('port') || 3000;
-  
+
   await app.listen(port);
 
   console.log(`🚀 Application is running on: http://localhost:${port}`);

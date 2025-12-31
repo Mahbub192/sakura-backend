@@ -7,7 +7,10 @@ export class CreateAppointmentScheduleDto {
   @Min(1)
   clinicId: number;
 
-  @ApiProperty({ description: 'Date for the appointment schedule', example: '2024-01-15' })
+  @ApiProperty({
+    description: 'Date for the appointment schedule',
+    example: '2024-01-15',
+  })
   @IsDateString()
   date: string;
 
@@ -25,7 +28,10 @@ export class CreateAppointmentScheduleDto {
   })
   endTime: string;
 
-  @ApiProperty({ description: 'Duration of each appointment slot in minutes', example: 30 })
+  @ApiProperty({
+    description: 'Duration of each appointment slot in minutes',
+    example: 30,
+  })
   @IsInt()
   @Min(15)
   slotDuration: number;

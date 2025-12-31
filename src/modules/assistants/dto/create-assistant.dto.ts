@@ -1,5 +1,5 @@
-import { IsString, IsEmail, IsOptional, IsInt, Min, IsPhoneNumber } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { IsEmail, IsInt, IsOptional, IsString, Min } from 'class-validator';
 
 export class CreateAssistantDto {
   @ApiProperty({ description: 'Assistant full name' })

@@ -5,7 +5,7 @@ export const validationSchema = Joi.object({
     .valid('development', 'production', 'test')
     .default('development'),
   PORT: Joi.number().default(3000),
-  
+
   // Database validation
   // Support either DATABASE_URL (for Neon, Railway, etc.) or individual parameters
   DATABASE_URL: Joi.string().optional(),
@@ -30,11 +30,8 @@ export const validationSchema = Joi.object({
     then: Joi.optional(),
     otherwise: Joi.required(),
   }),
-  
+
   // JWT validation
   JWT_SECRET: Joi.string().min(32).required(),
   JWT_EXPIRES_IN: Joi.string().default('24h'),
 });
-
-
-

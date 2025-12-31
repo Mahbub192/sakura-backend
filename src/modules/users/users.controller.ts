@@ -1,28 +1,34 @@
 import {
-  Controller,
-  Get,
-  Post,
   Body,
-  Patch,
-  Param,
+  Controller,
   Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
   UseGuards,
 } from '@nestjs/common';
 import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
   ApiBearerAuth,
+  ApiOperation,
   ApiParam,
+  ApiResponse,
+  ApiTags,
 } from '@nestjs/swagger';
-import { UsersService } from './users.service';
-import { CreateUserDto, UpdateUserDto } from './dto';
-import { CreateMyUserProfileDto } from './dto/create-my-profile.dto';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
-import { Roles } from '../../common/decorators/roles.decorator';
-import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RoleType } from '../../entities/role.entity';
+import { CreateUserDto, UpdateUserDto } from './dto';
+import { CreateMyUserProfileDto } from './dto/create-my-profile.dto';
+import { UsersService } from './users.service';
+
+interface CurrentUserPayload {
+  userId: string; // Phone number (primary key)
+  email: string;
+  role: string;
+}
 
 @ApiTags('Users')
 @Controller('users')
@@ -47,7 +53,10 @@ export class UsersController {
   @ApiOperation({ summary: 'Update my user profile (any authenticated user)' })
   @ApiResponse({ status: 200, description: 'User profile updated' })
   @ApiResponse({ status: 404, description: 'User not found' })
-  updateMyProfile(@Body() updateProfileDto: CreateMyUserProfileDto, @CurrentUser() user: any) {
+  updateMyProfile(
+    @Body() updateProfileDto: CreateMyUserProfileDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
     return this.usersService.updateMyProfile(user.userId, updateProfileDto);
   }
 
@@ -58,9 +67,13 @@ export class UsersController {
   @ApiResponse({ status: 404, description: 'User not found' })
   async changePassword(
     @Body() body: { currentPassword: string; newPassword: string },
-    @CurrentUser() user: any
+    @CurrentUser() user: CurrentUserPayload,
   ) {
-    return this.usersService.changeMyPassword(user.userId, body.currentPassword, body.newPassword);
+    return this.usersService.changeMyPassword(
+      user.userId,
+      body.currentPassword,
+      body.newPassword,
+    );
   }
 
   @Get()
@@ -71,7 +84,6 @@ export class UsersController {
   findAll() {
     return this.usersService.findAll();
   }
-
 
   @Get(':phone')
   @UseGuards(RolesGuard)
@@ -128,6 +140,3 @@ export class UsersController {
     return this.usersService.remove(phone);
   }
 }
-
-
-

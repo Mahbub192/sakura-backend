@@ -31,6 +31,3 @@ export class CreateClinicDto {
   @IsEmail()
   email?: string;
 }
-
-
-

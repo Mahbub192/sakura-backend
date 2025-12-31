@@ -11,4 +11,3 @@ import { TokenAppointment, Appointment } from '../../entities';
   exports: [PatientsService],
 })
 export class PatientsModule {}
-

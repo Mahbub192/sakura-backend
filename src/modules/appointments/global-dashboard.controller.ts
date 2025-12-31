@@ -1,9 +1,4 @@
-import {
-  Controller,
-  Get,
-  Query,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -22,7 +17,9 @@ import { RoleType } from '../../entities/role.entity';
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class GlobalDashboardController {
-  constructor(private readonly globalDashboardService: GlobalDashboardService) {}
+  constructor(
+    private readonly globalDashboardService: GlobalDashboardService,
+  ) {}
 
   @Get('stats')
   @UseGuards(RolesGuard)
@@ -36,8 +33,10 @@ export class GlobalDashboardController {
   @Get('today-appointments')
   @UseGuards(RolesGuard)
   @Roles(RoleType.ADMIN, RoleType.DOCTOR)
-  @ApiOperation({ summary: 'Get all appointments for today across all doctors' })
-  @ApiResponse({ status: 200, description: 'Today\'s appointments retrieved' })
+  @ApiOperation({
+    summary: 'Get all appointments for today across all doctors',
+  })
+  @ApiResponse({ status: 200, description: "Today's appointments retrieved" })
   getTodayAllAppointments() {
     return this.globalDashboardService.getTodayAllAppointments();
   }
@@ -46,11 +45,23 @@ export class GlobalDashboardController {
   @UseGuards(RolesGuard)
   @Roles(RoleType.ADMIN, RoleType.DOCTOR)
   @ApiOperation({ summary: 'Get appointments by date range' })
-  @ApiResponse({ status: 200, description: 'Appointments retrieved for date range' })
-  @ApiQuery({ name: 'startDate', description: 'Start date in YYYY-MM-DD format' })
+  @ApiResponse({
+    status: 200,
+    description: 'Appointments retrieved for date range',
+  })
+  @ApiQuery({
+    name: 'startDate',
+    description: 'Start date in YYYY-MM-DD format',
+  })
   @ApiQuery({ name: 'endDate', description: 'End date in YYYY-MM-DD format' })
-  getAppointmentsByDateRange(@Query('startDate') startDate: string, @Query('endDate') endDate: string) {
-    return this.globalDashboardService.getAppointmentsByDateRange(startDate, endDate);
+  getAppointmentsByDateRange(
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+  ) {
+    return this.globalDashboardService.getAppointmentsByDateRange(
+      startDate,
+      endDate,
+    );
   }
 
   @Get('doctor-wise-stats')
@@ -58,7 +69,11 @@ export class GlobalDashboardController {
   @Roles(RoleType.ADMIN, RoleType.DOCTOR)
   @ApiOperation({ summary: 'Get doctor-wise statistics' })
   @ApiResponse({ status: 200, description: 'Doctor-wise statistics retrieved' })
-  @ApiQuery({ name: 'date', required: false, description: 'Date in YYYY-MM-DD format (defaults to today)' })
+  @ApiQuery({
+    name: 'date',
+    required: false,
+    description: 'Date in YYYY-MM-DD format (defaults to today)',
+  })
   getDoctorWiseStats(@Query('date') date?: string) {
     return this.globalDashboardService.getDoctorWiseStats(date);
   }
@@ -68,9 +83,23 @@ export class GlobalDashboardController {
   @Roles(RoleType.ADMIN, RoleType.DOCTOR, RoleType.ASSISTANT)
   @ApiOperation({ summary: 'Search appointments globally' })
   @ApiResponse({ status: 200, description: 'Search results retrieved' })
-  @ApiQuery({ name: 'search', description: 'Search term (patient name, phone, email, token number, or doctor name)' })
-  @ApiQuery({ name: 'date', required: false, description: 'Filter by date in YYYY-MM-DD format' })
-  searchGlobalAppointments(@Query('search') searchTerm: string, @Query('date') date?: string) {
-    return this.globalDashboardService.searchGlobalAppointments(searchTerm, date);
+  @ApiQuery({
+    name: 'search',
+    description:
+      'Search term (patient name, phone, email, token number, or doctor name)',
+  })
+  @ApiQuery({
+    name: 'date',
+    required: false,
+    description: 'Filter by date in YYYY-MM-DD format',
+  })
+  searchGlobalAppointments(
+    @Query('search') searchTerm: string,
+    @Query('date') date?: string,
+  ) {
+    return this.globalDashboardService.searchGlobalAppointments(
+      searchTerm,
+      date,
+    );
   }
 }

@@ -1,4 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+  OneToMany,
+} from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { Doctor } from './doctor.entity';
 import { Clinic } from './clinic.entity';
@@ -63,7 +70,10 @@ export class Appointment {
   @Column({ type: 'int', default: 0 })
   currentBookings: number;
 
-  @OneToMany(() => TokenAppointment, (tokenAppointment) => tokenAppointment.appointment)
+  @OneToMany(
+    () => TokenAppointment,
+    (tokenAppointment) => tokenAppointment.appointment,
+  )
   tokenAppointments: TokenAppointment[];
 
   @ApiProperty({ description: 'Creation timestamp' })
@@ -74,6 +84,3 @@ export class Appointment {
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   updatedAt: Date;
 }
-
-
-

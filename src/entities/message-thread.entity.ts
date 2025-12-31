@@ -1,4 +1,13 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToMany, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+  OneToMany,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { User } from './user.entity';
 import { Message } from './message.entity';
@@ -51,7 +60,10 @@ export class MessageThread {
   @Column({ type: 'boolean', default: false })
   isArchived: boolean;
 
-  @ApiProperty({ type: () => [Message], description: 'Messages in this thread' })
+  @ApiProperty({
+    type: () => [Message],
+    description: 'Messages in this thread',
+  })
   @OneToMany(() => Message, (message) => message.threadId, { cascade: true })
   messages: Message[];
 
@@ -63,4 +75,3 @@ export class MessageThread {
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 }
-

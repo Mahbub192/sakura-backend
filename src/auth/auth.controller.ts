@@ -1,10 +1,22 @@
-import { Controller, Post, Body, UseGuards, Request, Get, UnauthorizedException } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
-import { AuthService } from './auth.service';
-import { RegisterDto, LoginDto } from './dto';
-import { LocalAuthGuard } from '../common/guards/local-auth.guard';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  UnauthorizedException,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
+import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { AuthService } from './auth.service';
+import { LoginDto, RegisterDto } from './dto';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -33,21 +45,19 @@ export class AuthController {
   @ApiOperation({ summary: 'Get current user profile' })
   @ApiResponse({ status: 200, description: 'User profile retrieved' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async getProfile(@CurrentUser() user: any) {
+  async getProfile(@CurrentUser() user: CurrentUserPayload) {
     // Fetch full user data from database using phone number
     const fullUser = await this.authService.findUserByPhone(user.userId);
     if (!fullUser) {
       throw new UnauthorizedException('User not found');
     }
-    
+
     // Return user data without password, with role as string
     const { password, role, ...userWithoutPassword } = fullUser;
+    void password; // Explicitly mark as intentionally unused
     return {
       ...userWithoutPassword,
       role: role?.name || user.role, // Return role name as string
     };
   }
 }
-
-
-

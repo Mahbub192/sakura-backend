@@ -1,5 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNumber, IsDateString, IsOptional, IsEmail, IsPositive, IsBoolean } from 'class-validator';
+import {
+  IsBoolean,
+  IsEmail,
+  IsNumber,
+  IsOptional,
+  IsPositive,
+  IsString,
+} from 'class-validator';
 
 export class BookAppointmentDto {
   @ApiProperty({ description: 'Patient full name' })
@@ -37,7 +44,11 @@ export class BookAppointmentDto {
   @IsNumber()
   appointmentId: number;
 
-  @ApiProperty({ description: 'Appointment time in HH:MM format (24-hour)', required: false, example: '10:44' })
+  @ApiProperty({
+    description: 'Appointment time in HH:MM format (24-hour)',
+    required: false,
+    example: '10:44',
+  })
   @IsOptional()
   @IsString()
   time?: string;
@@ -52,4 +63,3 @@ export class BookAppointmentDto {
   @IsString()
   notes?: string;
 }
-

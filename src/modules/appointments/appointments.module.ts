@@ -19,6 +19,3 @@ import { AssistantsModule } from '../assistants/assistants.module';
   exports: [AppointmentsService, GlobalDashboardService],
 })
 export class AppointmentsModule {}
-
-
-
